@@ -1,0 +1,126 @@
+{% extends "manage/layout.html" %}
+
+{% block page_title %}Category Management | System Administration{% endblock %}
+
+{% block admin_content %}
+<div class="page-container equipment-catalog categories-page">
+    <header class="page-header">
+        <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+            <a class="breadcrumb-link" href="{% url 'admin_dashboard' %}">Dashboard</a>
+            <span class="breadcrumb-separator" aria-hidden="true">/</span>
+            <span class="breadcrumb-current" aria-current="page">Equipment Catalog</span>
+        </nav>
+        <p class="page-header__eyebrow">A2 · Equipment Catalog</p>
+        <h2 class="page-title">Equipment Categories</h2>
+        <p class="page-description">Create, update, search, and archive equipment categories.</p>
+    </header>
+
+    <nav class="tab-nav" aria-label="Equipment catalog sections">
+        <a class="tab-link is-active" href="{% url 'category_management' %}" aria-current="page">Categories</a>
+        <a class="tab-link" href="{% url 'catalog_item_management' %}">Catalog Items</a>
+        <a class="tab-link" href="{% url 'physical_units_management' %}">Physical Units</a>
+    </nav>
+
+    <div class="grid-layout">
+        <section class="content-card form-section" aria-labelledby="add-category-heading">
+            <header class="card-header">
+                <h3 class="card-title" id="add-category-heading">Add Category</h3>
+                <p class="card-description">Create a category to organize related equipment types.</p>
+            </header>
+
+            <form class="standard-form" method="post" action="{% url 'category_create' %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label class="form-label" for="category-name">Category Name</label>
+                    <input class="form-input" id="category-name" type="text" name="name" maxlength="100" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="category-description">Description <span class="text-optional">(optional)</span></label>
+                    <textarea class="form-textarea" id="category-description" name="description" rows="3"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn--primary" type="submit">Add Category</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="content-card list-section" aria-labelledby="existing-categories-heading">
+            <header class="card-header">
+                <h3 class="card-title" id="existing-categories-heading">Existing Categories</h3>
+                <p class="card-description">Review category details and manage active records.</p>
+            </header>
+
+            <form class="filter-form" method="get" action="{% url 'category_management' %}">
+                <div class="form-group form-group--inline">
+                    <label class="visually-hidden" for="category-search">Search categories</label>
+                    <input class="form-input" id="category-search" type="text" name="q" value="{{ search_query }}" placeholder="Search categories">
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn--secondary" type="submit">Search</button>
+                    <a class="btn btn--link" href="{% url 'category_management' %}">Clear</a>
+                </div>
+            </form>
+
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Category</th>
+                            <th scope="col">Description</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category in categories %}
+                            <tr>
+                                <td data-label="Category">
+                                    <strong class="d-block">{{ category.name }}</strong>
+                                    <small class="text-muted">Category ID: {{ category.pk }}</small>
+                                </td>
+                                <td data-label="Description">{{ category.description|default:"—" }}</td>
+                                <td data-label="Status">
+                                    <span class="badge {% if category.is_archived %}badge--archived{% else %}badge--active{% endif %}">
+                                        {% if category.is_archived %}Archived{% else %}Active{% endif %}
+                                    </span>
+                                </td>
+                                <td data-label="Actions">
+                                    {% if not category.is_archived %}
+                                        <details class="action-dropdown">
+                                            <summary class="btn btn--sm btn--outline">Edit</summary>
+                                            <div class="dropdown-content">
+                                                <form class="edit-form" method="post" action="{% url 'category_edit' category.pk %}">
+                                                    {% csrf_token %}
+                                                    <div class="form-group">
+                                                        <label class="form-label" for="category-name-{{ category.pk }}">Category Name</label>
+                                                        <input class="form-input" id="category-name-{{ category.pk }}" type="text" name="name" value="{{ category.name }}" maxlength="100" required>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label class="form-label" for="category-description-{{ category.pk }}">Description</label>
+                                                        <textarea class="form-textarea" id="category-description-{{ category.pk }}" name="description" rows="3">{{ category.description }}</textarea>
+                                                    </div>
+                                                    <button class="btn btn--primary btn--sm" type="submit">Save</button>
+                                                </form>
+                                            </div>
+                                        </details>
+                                        <form class="inline-form ml-2" method="post" action="{% url 'category_archive' category.pk %}">
+                                            {% csrf_token %}
+                                            <button class="btn btn--sm btn--danger" type="submit">Archive</button>
+                                        </form>
+                                    {% else %}
+                                        <span class="text-muted">Read-only</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">No categories found.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

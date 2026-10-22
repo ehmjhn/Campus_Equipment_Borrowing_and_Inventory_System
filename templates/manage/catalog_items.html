@@ -1,0 +1,151 @@
+{% extends "manage/layout.html" %}
+
+{% block page_title %}Catalog Items | System Administration{% endblock %}
+
+{% block admin_content %}
+<div class="page-container equipment-catalog catalog-items-page">
+    <header class="page-header">
+        <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+            <a class="breadcrumb-link" href="{% url 'admin_dashboard' %}">Dashboard</a>
+            <span class="breadcrumb-separator" aria-hidden="true">/</span>
+            <span class="breadcrumb-current">Equipment Catalog</span>
+            <span class="breadcrumb-separator" aria-hidden="true">/</span>
+            <span class="breadcrumb-current" aria-current="page">Catalog Items</span>
+        </nav>
+        <p class="page-header__eyebrow">A2 · Equipment Catalog</p>
+        <h2 class="page-title">Catalog Items</h2>
+        <p class="page-description">Manage equipment types, descriptions, and categories.</p>
+    </header>
+
+    <nav class="tab-nav" aria-label="Equipment catalog sections">
+        <a class="tab-link" href="{% url 'category_management' %}">Categories</a>
+        <a class="tab-link is-active" href="{% url 'catalog_item_management' %}" aria-current="page">Catalog Items</a>
+        <a class="tab-link" href="{% url 'physical_units_management' %}">Physical Units</a>
+    </nav>
+
+    <section class="content-card form-section" aria-labelledby="add-item-heading">
+        <header class="card-header">
+            <h3 class="card-title" id="add-item-heading">Add Catalog Item</h3>
+            <p class="card-description">Create an equipment type and assign it to a category.</p>
+        </header>
+
+        <form class="standard-form grid-form" method="post" action="{% url 'catalog_item_create' %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label class="form-label" for="item-name">Item Name</label>
+                <input class="form-input" id="item-name" type="text" name="name" maxlength="200" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="item-category">Category</label>
+                <select class="form-select" id="item-category" name="category" required>
+                    <option value="">Select a category</option>
+                    {% for category in active_categories %}
+                        <option value="{{ category.pk }}">{{ category.name }}</option>
+                    {% empty %}
+                        <option value="" disabled>No active categories available</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group form-group--full">
+                <label class="form-label" for="item-description">Description <span class="text-optional">(optional)</span></label>
+                <textarea class="form-textarea" id="item-description" name="description" rows="3"></textarea>
+            </div>
+            <div class="form-actions form-group--full">
+                <button class="btn btn--primary" type="submit" {% if not active_categories %}disabled{% endif %}>Add Item</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="content-card list-section" aria-labelledby="existing-items-heading">
+        <header class="card-header">
+            <h3 class="card-title" id="existing-items-heading">Existing Catalog Items</h3>
+            <p class="card-description">Search and manage registered equipment types.</p>
+        </header>
+
+        <form class="filter-form" method="get" action="{% url 'catalog_item_management' %}">
+            <div class="form-group form-group--inline">
+                <label class="visually-hidden" for="item-search">Search catalog items</label>
+                <input class="form-input" id="item-search" type="text" name="q" value="{{ search_query }}" placeholder="Search item, description, or category">
+            </div>
+            <div class="form-actions">
+                <button class="btn btn--secondary" type="submit">Search</button>
+                <a class="btn btn--link" href="{% url 'catalog_item_management' %}">Clear</a>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Item Name</th>
+                        <th scope="col">Category</th>
+                        <th scope="col">Description</th>
+                        <th scope="col">Physical Units</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                        <tr>
+                            <td data-label="Item Name">
+                                <strong class="d-block">{{ item.name }}</strong>
+                                <small class="text-muted">Item ID: {{ item.pk }}</small>
+                            </td>
+                            <td data-label="Category">{{ item.category.name }}</td>
+                            <td data-label="Description">{{ item.description|default:"—" }}</td>
+                            <td data-label="Physical Units">
+                                <span class="badge badge--neutral">{{ item.units.count }}</span>
+                            </td>
+                            <td data-label="Status">
+                                <span class="badge {% if item.is_archived %}badge--archived{% else %}badge--active{% endif %}">
+                                    {% if item.is_archived %}Archived{% else %}Active{% endif %}
+                                </span>
+                            </td>
+                            <td data-label="Actions">
+                                {% if not item.is_archived %}
+                                    <details class="action-dropdown">
+                                        <summary class="btn btn--sm btn--outline">Edit</summary>
+                                        <div class="dropdown-content">
+                                            <form class="edit-form" method="post" action="{% url 'catalog_item_edit' item.pk %}">
+                                                {% csrf_token %}
+                                                <div class="form-group">
+                                                    <label class="form-label" for="item-name-{{ item.pk }}">Item Name</label>
+                                                    <input class="form-input" id="item-name-{{ item.pk }}" type="text" name="name" value="{{ item.name }}" maxlength="200" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="form-label" for="item-category-{{ item.pk }}">Category</label>
+                                                    <select class="form-select" id="item-category-{{ item.pk }}" name="category" required>
+                                                        {% for category in active_categories %}
+                                                            <option value="{{ category.pk }}" {% if category.pk == item.category_id %}selected{% endif %}>{{ category.name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="form-label" for="item-description-{{ item.pk }}">Description</label>
+                                                    <textarea class="form-textarea" id="item-description-{{ item.pk }}" name="description" rows="3">{{ item.description }}</textarea>
+                                                </div>
+                                                <button class="btn btn--primary btn--sm" type="submit">Save</button>
+                                            </form>
+                                        </div>
+                                    </details>
+                                    <form class="inline-form ml-2" method="post" action="{% url 'catalog_item_archive' item.pk %}">
+                                        {% csrf_token %}
+                                        <button class="btn btn--sm btn--danger" type="submit">Archive</button>
+                                    </form>
+                                {% else %}
+                                    <span class="text-muted">Read-only</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">No catalog items found.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

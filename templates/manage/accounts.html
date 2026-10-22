@@ -1,0 +1,89 @@
+{% extends "manage/layout.html" %}
+
+{% block page_title %}Account Management{% endblock %}
+
+{% block admin_content %}
+<div class="page-container accounts-page">
+    <header class="page-header">
+        <h2 class="page-title">Account Management</h2>
+        <p class="page-description">Search and manage existing user accounts.</p>
+    </header>
+
+    <section class="content-section">
+        <form class="filter-form" method="get" action="{% url 'account_management' %}">
+            <div class="form-group form-group--inline">
+                <label class="form-label visually-hidden" for="account-search">Search accounts</label>
+                <input class="form-input" id="account-search" type="text" name="q" value="{{ search_query }}" placeholder="Username, first name, last name, or email">
+            </div>
+            <div class="form-actions">
+                <button class="btn btn--primary" type="submit">Search</button>
+                {% if search_query %}
+                    <a class="btn btn--link" href="{% url 'account_management' %}">Clear</a>
+                {% endif %}
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Username</th>
+                        <th scope="col">Full Name</th>
+                        <th scope="col">Email</th>
+                        <th scope="col">Role</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in page_obj %}
+                        <tr>
+                            <td data-label="Username">{{ row.user.username }}</td>
+                            <td data-label="Full Name">{{ row.user.get_full_name|default:"—" }}</td>
+                            <td data-label="Email">{{ row.user.email|default:"—" }}</td>
+                            <td data-label="Role">{{ row.profile.get_role_display }}</td>
+                            <td data-label="Status">
+                                <span class="badge badge--{% if row.is_active %}success{% else %}danger{% endif %}">
+                                    {% if row.is_active %}Active{% else %}Inactive{% endif %}
+                                </span>
+                            </td>
+                            <td data-label="Action">
+                                {% if row.user.id == request.user.id %}
+                                    <span class="text-muted">Current account</span>
+                                {% else %}
+                                    <form class="inline-form" method="post" action="{% url 'toggle_account_status' row.user.id %}">
+                                        {% csrf_token %}
+                                        <button class="btn btn--sm {% if row.is_active %}btn--danger{% else %}btn--success{% endif %}" type="submit">
+                                            {% if row.is_active %}Deactivate{% else %}Activate{% endif %}
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">No accounts found.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <footer class="pagination-container">
+            <p class="pagination-info">Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.</p>
+            
+            <nav aria-label="Account pages" class="pagination-nav">
+                {% if page_obj.has_previous %}
+                    <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page=1">First</a>
+                    <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page={{ page_obj.previous_page_number }}">Previous</a>
+                {% endif %}
+
+                {% if page_obj.has_next %}
+                    <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page={{ page_obj.next_page_number }}">Next</a>
+                    <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page={{ page_obj.paginator.num_pages }}">Last</a>
+                {% endif %}
+            </nav>
+        </footer>
+    </section>
+</div>
+{% endblock %}

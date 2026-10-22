@@ -1,0 +1,103 @@
+{% extends "manage/layout.html" %}
+
+{% block page_title %}Physical Units | System Administration{% endblock %}
+
+{% block admin_content %}
+<div class="page-container equipment-catalog physical-units-page">
+    <header class="page-header">
+        <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+            <a class="breadcrumb-link" href="{% url 'admin_dashboard' %}">Dashboard</a>
+            <span class="breadcrumb-separator" aria-hidden="true">/</span>
+            <span class="breadcrumb-current">Equipment Catalog</span>
+            <span class="breadcrumb-separator" aria-hidden="true">/</span>
+            <span class="breadcrumb-current" aria-current="page">Physical Units</span>
+        </nav>
+        <p class="page-header__eyebrow">A2 · Equipment Catalog</p>
+        <h2 class="page-title">Physical Units</h2>
+        <p class="page-description">Register individual equipment assets and monitor their inventory status.</p>
+    </header>
+
+    <nav class="tab-nav" aria-label="Equipment catalog sections">
+        <a class="tab-link" href="{% url 'category_management' %}">Categories</a>
+        <a class="tab-link" href="{% url 'catalog_item_management' %}">Catalog Items</a>
+        <a class="tab-link is-active" href="{% url 'physical_units_management' %}" aria-current="page">Physical Units</a>
+    </nav>
+
+    <section class="content-card form-section" aria-labelledby="register-unit-heading">
+        <header class="card-header">
+            <h3 class="card-title" id="register-unit-heading">Register Physical Equipment Unit</h3>
+            <p class="card-description">Each physical unit must have a unique asset code.</p>
+        </header>
+
+        <form class="standard-form grid-form" method="post" action="{% url 'equipment_unit_create' %}">
+            {% csrf_token %}
+            <div class="form-group form-group--full">
+                <label class="form-label" for="catalog-item">Catalog Item</label>
+                <select class="form-select" id="catalog-item" name="catalog_item" required>
+                    <option value="">Select a catalog item</option>
+                    {% for item in active_catalog_items %}
+                        <option value="{{ item.pk }}">{{ item.category.name }} — {{ item.name }}</option>
+                    {% empty %}
+                        <option value="" disabled>No active catalog items available</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="asset-code">Asset Code</label>
+                <input class="form-input" type="text" id="asset-code" name="asset_code" maxlength="50" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="acquisition-date">Acquisition Date</label>
+                <input class="form-input" type="date" id="acquisition-date" name="acquisition_date" required>
+            </div>
+            <div class="form-group form-group--full">
+                <label class="form-label" for="unit-condition">Condition</label>
+                <textarea class="form-textarea" id="unit-condition" name="condition" rows="3" required></textarea>
+            </div>
+            <div class="form-actions form-group--full">
+                <button class="btn btn--primary" type="submit" {% if not active_catalog_items %}disabled{% endif %}>Register Unit</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="content-card list-section" aria-labelledby="registered-units-heading">
+        <header class="card-header">
+            <h3 class="card-title" id="registered-units-heading">Registered Physical Units</h3>
+            <p class="card-description">View asset codes, equipment details, and current unit status.</p>
+        </header>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Asset Code</th>
+                        <th scope="col">Catalog Item</th>
+                        <th scope="col">Category</th>
+                        <th scope="col">Condition</th>
+                        <th scope="col">Acquisition Date</th>
+                        <th scope="col">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for unit in equipment_units %}
+                        <tr>
+                            <td data-label="Asset Code"><strong class="text-primary">{{ unit.asset_code }}</strong></td>
+                            <td data-label="Catalog Item">{{ unit.catalog_item.name }}</td>
+                            <td data-label="Category">{{ unit.catalog_item.category.name }}</td>
+                            <td data-label="Condition">{{ unit.condition }}</td>
+                            <td data-label="Acquisition Date">{{ unit.acquisition_date|date:"Y-m-d" }}</td>
+                            <td data-label="Status">
+                                <span class="badge badge--{{ unit.status|slugify }}">{{ unit.status }}</span>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">No equipment units registered yet.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

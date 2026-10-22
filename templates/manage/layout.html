@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}{% block page_title %}System Administration{% endblock %}{% endblock %}
+
+{% block main_layout %}
+<div class="admin-layout">
+    <header class="admin-header">
+        <div class="admin-header__brand">
+            <p class="admin-header__eyebrow">Campus Equipment Borrowing and Inventory System</p>
+            <h1 class="admin-header__title">System Administration</h1>
+        </div>
+
+        <div class="admin-header__user-profile">
+            <span class="admin-header__user-label">Signed in as</span>
+            <strong class="admin-header__username">{{ request.user.username }}</strong>
+        </div>
+    </header>
+
+    <div class="admin-body">
+        <aside class="admin-sidebar">
+            <nav class="admin-nav" aria-label="Main administration navigation">
+                <ul class="admin-nav__list">
+                    <li class="admin-nav__item">
+                        <a class="admin-nav__link {% if request.resolver_match.url_name == 'admin_dashboard' %}is-active{% endif %}" href="{% url 'admin_dashboard' %}">
+                            Dashboard
+                        </a>
+                    </li>
+                    <li class="admin-nav__item">
+                        <a class="admin-nav__link {% if request.resolver_match.url_name == 'account_management' %}is-active{% endif %}" href="{% url 'account_management' %}">
+                            Accounts <span class="admin-nav__badge">A1</span>
+                        </a>
+                    </li>
+                    <li class="admin-nav__item">
+                        <a class="admin-nav__link {% if request.resolver_match.url_name in 'category_management,catalog_item_management,physical_units_management' %}is-active{% endif %}" href="{% url 'category_management' %}">
+                            Equipment Catalog <span class="admin-nav__badge">A2</span>
+                        </a>
+                    </li>
+                    <li class="admin-nav__item">
+                        <a class="admin-nav__link {% if request.resolver_match.url_name in 'request_review,request_review_action' %}is-active{% endif %}" href="{% url 'request_review' %}">
+                            Request Review <span class="admin-nav__badge">A3</span>
+                        </a>
+                    </li>
+                    <li class="admin-nav__item">
+                        <a class="admin-nav__link" href="#">
+                            Release Assets <span class="admin-nav__badge">A4</span>
+                        </a>
+                    </li>
+                    <li class="admin-nav__item">
+                        <a class="admin-nav__link" href="#">
+                            Returns &amp; Overdue <span class="admin-nav__badge">A5</span>
+                        </a>
+                    </li>
+                    <li class="admin-nav__item">
+                        <a class="admin-nav__link" href="#">
+                            Maintenance <span class="admin-nav__badge">A6</span>
+                        </a>
+                    </li>
+                    <li class="admin-nav__item">
+                        <a class="admin-nav__link" href="#">
+                            Audit &amp; Settings <span class="admin-nav__badge">A8</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="admin-content" id="main-content">
+            {% if messages %}
+                <section class="notification-area" aria-label="Notifications" aria-live="polite">
+                    {% for message in messages %}
+                        <div class="alert alert--{{ message.tags|default:'info' }}" role="status">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </section>
+            {% endif %}
+
+            {% block admin_content %}{% endblock %}
+        </main>
+    </div>
+</div>
+{% endblock %}

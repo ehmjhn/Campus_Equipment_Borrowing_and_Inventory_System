@@ -1,0 +1,42 @@
+{% extends "manage/layout.html" %}
+
+{% block page_title %}Dashboard | System Administration{% endblock %}
+
+{% block admin_content %}
+<div class="page-container dashboard-page">
+    <header class="page-header">
+        <p class="page-header__eyebrow">Overview</p>
+        <h2 class="page-title">Dashboard</h2>
+        <p class="page-description">A live overview of equipment availability and borrowing activity.</p>
+    </header>
+
+    <section class="content-section dashboard-metrics-section" aria-labelledby="operational-metrics-heading">
+        <header class="section-header">
+            <h3 class="section-title" id="operational-metrics-heading">Live Operational Metrics</h3>
+            <p class="section-description">Current counts based on recorded inventory and borrowing activity.</p>
+        </header>
+
+        <div class="metrics-grid">
+            <article class="metric-card">
+                <h4 class="metric-card__label">Available Equipment Units</h4>
+                <p class="metric-card__value">{{ available_units }}</p>
+            </article>
+            
+            <article class="metric-card">
+                <h4 class="metric-card__label">Pending Borrow Requests</h4>
+                <p class="metric-card__value">{{ pending_requests }}</p>
+            </article>
+            
+            <article class="metric-card">
+                <h4 class="metric-card__label">Active Loans</h4>
+                <p class="metric-card__value">{{ active_loans }}</p>
+            </article>
+            
+            <article class="metric-card">
+                <h4 class="metric-card__label">Overdue Loans</h4>
+                <p class="metric-card__value">{{ overdue_loans }}</p>
+            </article>
+        </div>
+    </section>
+</div>
+{% endblock %}

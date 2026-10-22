@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Campus Equipment System{% endblock %}
+
+{% block main_layout %}
+<main class="auth-layout">
+    <div class="auth-container">
+        <header class="auth-header">
+            <h1 class="auth-title">Campus Equipment Borrowing System</h1>
+            <h2 class="auth-subtitle">Login</h2>
+        </header>
+
+        {% if form.errors %}
+            <div class="alert alert--error" role="alert">
+                <p>Invalid username or password. Please try again.</p>
+            </div>
+        {% endif %}
+
+        {% if next %}
+            <div class="alert alert--warning" role="alert">
+                {% if user.is_authenticated %}
+                    <p>Your account does not have permission to access that page.</p>
+                {% else %}
+                    <p>Please log in to continue.</p>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <form class="auth-form" method="post">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label class="form-label" for="{{ form.username.id_for_label }}">Username</label>
+                {{ form.username }}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="{{ form.password.id_for_label }}">Password</label>
+                {{ form.password }}
+            </div>
+
+            <input type="hidden" name="next" value="{{ next }}">
+
+            <div class="form-actions">
+                <button class="btn btn--primary w-100" type="submit">Log In</button>
+            </div>
+        </form>
+    </div>
+</main>
+{% endblock %}

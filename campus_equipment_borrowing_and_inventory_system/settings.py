@@ -55,8 +55,7 @@ ROOT_URLCONF = 'campus_equipment_borrowing_and_inventory_system.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates']
-        ,
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -122,8 +121,16 @@ STATIC_URL = 'static/'
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
+# MAILERS = {
+#     'default': {
+#         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+#     },
+# }
+
+EMAIL_BACKEND = (
+    'django.core.mail.backends.console.EmailBackend'
+)
+
+LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = "/manage/"
+LOGOUT_REDIRECT_URL = "/accounts/login/"
