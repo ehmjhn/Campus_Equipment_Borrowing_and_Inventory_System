@@ -96,4 +96,11 @@ urlpatterns = [
         name="request_reject",
     ),
 
+    path(
+        "",
+        include(
+            "Campus_Equipment_Borrowing_and_Inventory_System_APP.admin_operations_urls"
+        ),
+    ),
+
 ]

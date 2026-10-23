@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Borrowing Slip | Campus Equipment System{% endblock %}
+
+{% block main_layout %}
+<main class="page-container borrowing-slip">
+    <header class="page-header">
+        <p class="page-header__eyebrow">Campus Equipment Borrowing and Inventory System</p>
+        <h1 class="page-title">Equipment Borrowing Slip</h1>
+        <p>Loan No. {{ loan.id }} · Request No. {{ borrow_request.id }}</p>
+    </header>
+
+    {% if messages %}
+        <section class="notification-area" aria-label="Notifications" aria-live="polite">
+            {% for message in messages %}
+                <div class="alert alert--{{ message.tags|default:'info' }}" role="status">{{ message }}</div>
+            {% endfor %}
+        </section>
+    {% endif %}
+
+    <section class="content-card">
+        <div class="card-body">
+            <h2>Borrower Details</h2>
+            <p><strong>Name:</strong> {{ borrow_request.user.get_full_name|default:borrow_request.user.username }}</p>
+            <p><strong>Username:</strong> {{ borrow_request.user.username }}</p>
+            <p><strong>Email:</strong> {{ borrow_request.user.email|default:"Not provided" }}</p>
+            <p><strong>Purpose:</strong> {{ borrow_request.purpose }}</p>
+
+            <h2>Release Details</h2>
+            <p><strong>Release Date:</strong> {{ loan.issued_at|date:"M d, Y h:i A" }}</p>
+            <p><strong>Released By:</strong> {{ loan.issued_by.get_full_name|default:loan.issued_by.username }}</p>
+            <p><strong>Due Date:</strong> {{ borrow_request.return_date|date:"M d, Y" }}</p>
+            <p><strong>Loan Status:</strong> {{ borrow_request.status }}</p>
+
+            <h2>Equipment Issued</h2>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Equipment</th>
+                        <th scope="col">Asset Code</th>
+                        <th scope="col">Condition at Release</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request_item in borrow_request.items.all %}
+                        {% for allocation in request_item.allocations.all %}
+                            <tr>
+                                <td>{{ request_item.catalog_item.name }}</td>
+                                <td>{{ allocation.unit.asset_code }}</td>
+                                <td>{{ allocation.unit.condition }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% empty %}
+                        <tr><td colspan="3">No allocated equipment was found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <p>I acknowledge receipt of the equipment listed above and agree to return it by the due date in the recorded condition, subject to the campus borrowing rules.</p>
+
+            <div class="signature-section">
+                <p>Borrower Signature: ____________________________________</p>
+                <p>Date: ____________________</p>
+                <p>Releasing Admin Signature: ____________________________</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="form-actions mt-4">
+        <button class="btn btn--primary" type="button" onclick="window.print()">Print Borrowing Slip</button>
+        <a class="btn btn--outline" href="{% url 'release_management' %}">Back to Equipment Release</a>
+    </div>
+</main>
+{% endblock %}

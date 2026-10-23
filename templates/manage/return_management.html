@@ -1,0 +1,130 @@
+{% extends "manage/operations_layout.html" %}
+
+{% block page_title %}Returns and Overdue | System Administration{% endblock %}
+
+{% block admin_content %}
+<div class="page-container returns-page">
+    <header class="page-header">
+        <p class="page-header__eyebrow">A5 · Returns and Overdue</p>
+        <h2 class="page-title">Returns and Overdue Monitoring</h2>
+        <p class="page-description">Record each physical unit separately. A loan closes only after every issued unit is returned.</p>
+    </header>
+
+    <form class="filter-form grid-form" method="get">
+        <div class="form-group form-group--large">
+            <label for="return-search">Search active loans</label>
+            <input class="form-input" id="return-search" type="search" name="q" value="{{ search_query }}" placeholder="Borrower, equipment, purpose, or asset code">
+        </div>
+        <div class="form-actions form-group d-flex-gap">
+            <button class="btn btn--primary" type="submit">Search</button>
+            <a class="btn btn--outline" href="{% url 'return_management' %}">Reset</a>
+        </div>
+    </form>
+
+    {% for row in loan_rows %}
+        <article class="content-card loan-card mb-4">
+            <header class="card-header d-flex-between">
+                <h3 class="card-title">Loan #{{ row.loan.id }} · Request #{{ row.loan.request_id }}</h3>
+                <span class="badge {% if row.is_overdue %}badge--danger{% else %}badge--neutral{% endif %}">
+                    {% if row.is_overdue %}Overdue · {{ row.overdue_days }} day(s){% else %}{{ row.loan.request.status }}{% endif %}
+                </span>
+            </header>
+
+            <div class="card-body">
+                <div class="request-details-grid">
+                    <div class="detail-group">
+                        <strong class="detail-label">Borrower</strong>
+                        <p class="detail-value">{{ row.loan.request.user.get_full_name|default:row.loan.request.user.username }}</p>
+                        <small>{{ row.loan.request.user.username }}</small>
+                    </div>
+                    <div class="detail-group">
+                        <strong class="detail-label">Release Date</strong>
+                        <p class="detail-value">{{ row.loan.issued_at|date:"M d, Y h:i A" }}</p>
+                    </div>
+                    <div class="detail-group">
+                        <strong class="detail-label">Due Date</strong>
+                        <p class="detail-value">{{ row.due_date|date:"M d, Y" }}</p>
+                    </div>
+                    <div class="detail-group">
+                        <strong class="detail-label">Outstanding Units</strong>
+                        <p class="detail-value">{{ row.outstanding_count }}</p>
+                    </div>
+                </div>
+
+                <div class="table-responsive mt-3">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Asset Code</th>
+                                <th scope="col">Equipment</th>
+                                <th scope="col">Unit Status</th>
+                                <th scope="col">Return Record</th>
+                                <th scope="col">Record Return</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for unit_row in row.units %}
+                                <tr>
+                                    <td>{{ unit_row.unit.asset_code }}</td>
+                                    <td>{{ unit_row.unit.catalog_item.name }}</td>
+                                    <td>{{ unit_row.unit.status }}</td>
+                                    <td>
+                                        {% if unit_row.return_record %}
+                                            Returned {{ unit_row.return_record.returned_at|date:"M d, Y h:i A" }}<br>
+                                            Condition: {{ unit_row.return_record.condition_on_return }}
+                                        {% else %}
+                                            Not returned
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if unit_row.can_return %}
+                                            <form method="post" action="{% url 'record_unit_return' row.loan.id unit_row.unit.id %}">
+                                                {% csrf_token %}
+                                                <div class="form-group">
+                                                    <label for="condition-{{ row.loan.id }}-{{ unit_row.unit.id }}">Condition</label>
+                                                    <select class="form-select" id="condition-{{ row.loan.id }}-{{ unit_row.unit.id }}" name="condition_status" required>
+                                                        <option value="">Choose condition</option>
+                                                        <option value="Good">Good</option>
+                                                        <option value="Damaged">Damaged</option>
+                                                        <option value="Needs Repair">Needs Repair</option>
+                                                        <option value="Other">Other</option>
+                                                    </select>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="notes-{{ row.loan.id }}-{{ unit_row.unit.id }}">Condition notes</label>
+                                                    <textarea class="form-textarea" id="notes-{{ row.loan.id }}-{{ unit_row.unit.id }}" name="condition_notes" rows="2" maxlength="1000"></textarea>
+                                                </div>
+                                                <button class="btn btn--primary" type="submit" onclick="return confirm('Record the return of this asset?');">Record Return</button>
+                                            </form>
+                                        {% elif unit_row.return_record %}
+                                            Return recorded
+                                        {% else %}
+                                            Unit status must be Issued before return can be recorded
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="5">No allocated units were found for this loan.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </article>
+    {% empty %}
+        <div class="alert alert--info">There are no active loans matching your search.</div>
+    {% endfor %}
+
+    {% if page_obj.paginator.num_pages > 1 %}
+        <nav class="pagination-nav mt-4" aria-label="Loan pages">
+            {% if page_obj.has_previous %}
+                <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page={{ page_obj.previous_page_number }}">Previous</a>
+            {% endif %}
+            <span class="pagination-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+                <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page={{ page_obj.next_page_number }}">Next</a>
+            {% endif %}
+        </nav>
+    {% endif %}
+</div>
+{% endblock %}

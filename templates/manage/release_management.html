@@ -1,0 +1,169 @@
+{% extends "manage/operations_layout.html" %}
+
+{% block page_title %}Equipment Release | System Administration{% endblock %}
+
+{% block admin_content %}
+<div class="page-container release-page">
+    <header class="page-header">
+        <p class="page-header__eyebrow">A4 · Equipment Release</p>
+        <h2 class="page-title">Equipment Release</h2>
+        <p class="page-description">Issue approved requests, review reserved asset codes, and print borrowing slips.</p>
+    </header>
+
+    <form class="filter-form grid-form" method="get">
+        <div class="form-group form-group--large">
+            <label for="release-search">Search requests and loans</label>
+            <input class="form-input" id="release-search" type="search" name="q" value="{{ search_query }}" placeholder="Borrower, equipment, purpose, or asset code">
+        </div>
+        <div class="form-actions form-group d-flex-gap">
+            <button class="btn btn--primary" type="submit">Search</button>
+            <a class="btn btn--outline" href="{% url 'release_management' %}">Reset</a>
+        </div>
+    </form>
+
+    <section class="content-section">
+        <header class="section-header">
+            <h3 class="section-title">Approved Requests Ready for Release</h3>
+            <p class="section-description">Requests must have all requested units reserved and a valid due date before they can be issued.</p>
+        </header>
+
+        {% for borrow_request in approved_requests %}
+            <article class="content-card request-card mb-4">
+                <header class="card-header d-flex-between">
+                    <h4 class="card-title">Request #{{ borrow_request.id }}</h4>
+                    <span class="badge badge--approved">{{ borrow_request.status }}</span>
+                </header>
+                <div class="card-body">
+                    <div class="request-details-grid">
+                        <div class="detail-group">
+                            <strong class="detail-label">Borrower</strong>
+                            <p class="detail-value">{{ borrow_request.user.get_full_name|default:borrow_request.user.username }}</p>
+                            <small>{{ borrow_request.user.username }} · {{ borrow_request.user.email|default:"No email provided" }}</small>
+                        </div>
+                        <div class="detail-group">
+                            <strong class="detail-label">Requested</strong>
+                            <p class="detail-value">{{ borrow_request.requested_at|date:"M d, Y h:i A" }}</p>
+                        </div>
+                        <div class="detail-group">
+                            <strong class="detail-label">Due Date</strong>
+                            <p class="detail-value">{{ borrow_request.return_date|date:"M d, Y" }}</p>
+                        </div>
+                    </div>
+
+                    <div class="detail-group mt-3">
+                        <strong class="detail-label">Purpose</strong>
+                        <p class="detail-value">{{ borrow_request.purpose }}</p>
+                    </div>
+
+                    <div class="table-responsive mt-3">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Equipment</th>
+                                    <th scope="col">Quantity</th>
+                                    <th scope="col">Reserved Asset Codes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for request_item in borrow_request.items.all %}
+                                    <tr>
+                                        <td>{{ request_item.catalog_item.name }}</td>
+                                        <td>{{ request_item.quantity }}</td>
+                                        <td>
+                                            {% for allocation in request_item.allocations.all %}
+                                                {{ allocation.unit.asset_code }}{% if not forloop.last %}, {% endif %}
+                                            {% empty %}
+                                                Not allocated
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr><td colspan="3">No equipment items are recorded for this request.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {% if borrow_request.admin_remarks %}
+                        <div class="alert alert--neutral mt-3">
+                            <strong>Admin Remarks</strong>
+                            <p>{{ borrow_request.admin_remarks }}</p>
+                        </div>
+                    {% endif %}
+
+                    <div class="request-actions-grid mt-4">
+                        <form method="post" action="{% url 'issue_approved_request' borrow_request.id %}">
+                            {% csrf_token %}
+                            <p>Issue this request to create a loan and mark its reserved units as issued.</p>
+                            <button class="btn btn--primary" type="submit" onclick="return confirm('Issue the reserved equipment for this request?');">Issue Equipment</button>
+                        </form>
+
+                        <form method="post" action="{% url 'revise_approved_due_date' borrow_request.id %}">
+                            {% csrf_token %}
+                            <div class="form-group">
+                                <label class="form-label" for="due-date-{{ borrow_request.id }}">Revise Due Date Before Issue</label>
+                                <input class="form-input" id="due-date-{{ borrow_request.id }}" type="date" name="due_date" min="{{ today|date:'Y-m-d' }}" max="{{ max_due_date|date:'Y-m-d' }}" value="{% if borrow_request.return_date >= today %}{{ borrow_request.return_date|date:'Y-m-d' }}{% else %}{{ max_due_date|date:'Y-m-d' }}{% endif %}" required>
+                                <small>Maximum duration: {{ max_loan_duration_days }} calendar days from today.</small>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="due-reason-{{ borrow_request.id }}">Reason for revision</label>
+                                <textarea class="form-textarea" id="due-reason-{{ borrow_request.id }}" name="reason" rows="2" maxlength="1000" required></textarea>
+                            </div>
+                            <button class="btn btn--outline" type="submit">Save Revised Due Date</button>
+                        </form>
+                    </div>
+                </div>
+            </article>
+        {% empty %}
+            <div class="alert alert--info">No approved requests are ready for release.</div>
+        {% endfor %}
+
+        {% if page_obj.paginator.num_pages > 1 %}
+            <nav class="pagination-nav mt-4" aria-label="Approved request pages">
+                {% if page_obj.has_previous %}
+                    <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page={{ page_obj.previous_page_number }}">Previous</a>
+                {% endif %}
+                <span class="pagination-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                {% if page_obj.has_next %}
+                    <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page={{ page_obj.next_page_number }}">Next</a>
+                {% endif %}
+            </nav>
+        {% endif %}
+    </section>
+
+    <section class="content-section mt-5">
+        <header class="section-header">
+            <h3 class="section-title">Issued Loans and Borrowing Slips</h3>
+            <p class="section-description">Open a slip to print or reprint the borrower and assigned asset details.</p>
+        </header>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Loan</th>
+                        <th scope="col">Borrower</th>
+                        <th scope="col">Release Date</th>
+                        <th scope="col">Due Date</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Slip</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for loan in issued_loans %}
+                        <tr>
+                            <td>#{{ loan.id }} / Request #{{ loan.request_id }}</td>
+                            <td>{{ loan.request.user.get_full_name|default:loan.request.user.username }}</td>
+                            <td>{{ loan.issued_at|date:"M d, Y h:i A" }}</td>
+                            <td>{{ loan.request.return_date|date:"M d, Y" }}</td>
+                            <td>{{ loan.request.status }}</td>
+                            <td><a class="btn btn--outline" href="{% url 'borrowing_slip' loan.request_id %}">View / Print Slip</a></td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="6">No issued loans found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}
