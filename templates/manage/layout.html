@@ -1,17 +1,15 @@
 {% extends "base.html" %}
 
-{% block title %}{% block page_title %}System Administration{% endblock %}{% endblock %}
+{% block title %}{% block page_title %}System Administration{% endblock %} | Campus Equipment System{% endblock %}
 
 {% block main_layout %}
 <div class="admin-layout">
     <header class="admin-header">
         <div class="admin-header__brand">
-            <p class="admin-header__eyebrow">Campus Equipment Borrowing and Inventory System</p>
-            <h1 class="admin-header__title">System Administration</h1>
+            <h1 class="admin-header__title">Campus Equipment Borrowing and Inventory System</h1>
         </div>
-
-        <div class="admin-header__user-profile">
-            <span class="admin-header__user-label">Signed in as</span>
+        <div class="admin-header__user">
+            <span class="admin-header__user-label">Admin:</span>
             <strong class="admin-header__username">{{ request.user.username }}</strong>
         </div>
     </header>
@@ -21,44 +19,28 @@
             <nav class="admin-nav" aria-label="Main administration navigation">
                 <ul class="admin-nav__list">
                     <li class="admin-nav__item">
-                        <a class="admin-nav__link {% if request.resolver_match.url_name == 'admin_dashboard' %}is-active{% endif %}" href="{% url 'admin_dashboard' %}">
-                            Dashboard
-                        </a>
+                        <a class="admin-nav__link {% if request.resolver_match.url_name == 'admin_dashboard' %}is-active{% endif %}" href="{% url 'admin_dashboard' %}">Dashboard</a>
                     </li>
                     <li class="admin-nav__item">
-                        <a class="admin-nav__link {% if request.resolver_match.url_name == 'account_management' %}is-active{% endif %}" href="{% url 'account_management' %}">
-                            Accounts <span class="admin-nav__badge">A1</span>
-                        </a>
+                        <a class="admin-nav__link {% if request.resolver_match.url_name == 'account_management' %}is-active{% endif %}" href="{% url 'account_management' %}">Accounts</a>
                     </li>
                     <li class="admin-nav__item">
-                        <a class="admin-nav__link {% if request.resolver_match.url_name in 'category_management,catalog_item_management,physical_units_management' %}is-active{% endif %}" href="{% url 'category_management' %}">
-                            Equipment Catalog <span class="admin-nav__badge">A2</span>
-                        </a>
+                        <a class="admin-nav__link {% if request.resolver_match.url_name in 'category_management,catalog_item_management,physical_units_management' %}is-active{% endif %}" href="{% url 'category_management' %}">Equipment Catalog</a>
                     </li>
                     <li class="admin-nav__item">
-                        <a class="admin-nav__link {% if request.resolver_match.url_name in 'request_review,request_review_action' %}is-active{% endif %}" href="{% url 'request_review' %}">
-                            Request Review <span class="admin-nav__badge">A3</span>
-                        </a>
+                        <a class="admin-nav__link {% if request.resolver_match.url_name in 'request_review,request_approve,request_reject' %}is-active{% endif %}" href="{% url 'request_review' %}">Request Review</a>
                     </li>
                     <li class="admin-nav__item">
-                        <a class="admin-nav__link" href="{% url 'release_management' %}">
-                            Release Assets <span class="admin-nav__badge">A4</span>
-                        </a>
+                        <a class="admin-nav__link {% if request.resolver_match.url_name in 'release_management,issue_approved_request,revise_approved_due_date,borrowing_slip' %}is-active{% endif %}" href="{% url 'release_management' %}">Release Assets</a>
                     </li>
                     <li class="admin-nav__item">
-                        <a class="admin-nav__link" href="{% url 'return_management' %}">
-                            Returns &amp; Overdue <span class="admin-nav__badge">A5</span>
-                        </a>
+                        <a class="admin-nav__link {% if request.resolver_match.url_name in 'return_management,record_unit_return' %}is-active{% endif %}" href="{% url 'return_management' %}">Returns &amp; Overdue</a>
                     </li>
                     <li class="admin-nav__item">
-                        <a class="admin-nav__link" href="{% url 'maintenance_management' %}">
-                            Maintenance <span class="admin-nav__badge">A6</span>
-                        </a>
+                        <a class="admin-nav__link {% if request.resolver_match.url_name in 'maintenance_management,open_maintenance_record,close_maintenance_record' %}is-active{% endif %}" href="{% url 'maintenance_management' %}">Maintenance</a>
                     </li>
                     <li class="admin-nav__item">
-                        <a class="admin-nav__link {% if request.resolver_match.url_name == 'audit_settings_management' %}is-active{% endif %}" href="{% url 'audit_settings_management' %}">
-                            Audit &amp; Settings <span class="admin-nav__badge">A8</span>
-                        </a>
+                        <a class="admin-nav__link {% if request.resolver_match.url_name == 'audit_settings_management' %}is-active{% endif %}" href="{% url 'audit_settings_management' %}">Audit &amp; Settings</a>
                     </li>
                 </ul>
             </nav>
@@ -68,9 +50,7 @@
             {% if messages %}
                 <section class="notification-area" aria-label="Notifications" aria-live="polite">
                     {% for message in messages %}
-                        <div class="alert alert--{{ message.tags|default:'info' }}" role="status">
-                            {{ message }}
-                        </div>
+                        <div class="alert alert--{{ message.tags|default:'info' }}" role="status">{{ message }}</div>
                     {% endfor %}
                 </section>
             {% endif %}

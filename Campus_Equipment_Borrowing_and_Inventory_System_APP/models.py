@@ -90,19 +90,59 @@ class BorrowRequest(models.Model):
         return f"Request #{self.id} by {self.user.username}"
 
 class RequestItem(models.Model):
-    request = models.ForeignKey(BorrowRequest, on_delete=models.CASCADE, related_name='items')
-    catalog_item = models.ForeignKey(CatalogItem, on_delete=models.CASCADE)
+    request = models.ForeignKey(
+        BorrowRequest,
+        on_delete=models.CASCADE,
+        related_name='items'
+    )
+    catalog_item = models.ForeignKey(
+        CatalogItem,
+        on_delete=models.PROTECT
+    )
     quantity = models.PositiveIntegerField()
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['request', 'catalog_item'],
+                name='unique_catalog_item_per_request'
+            ),
+            models.CheckConstraint(
+                condition=models.Q(quantity__gte=1),
+                name='request_item_quantity_gte_1'
+            ),
+        ]
+
     def __str__(self):
-        return f"{self.quantity}x {self.catalog_item.name} for Request #{self.request_id}"
+        return (
+            f"{self.quantity}x {self.catalog_item.name} "
+            f"for Request #{self.request_id}"
+        )
 
 class UnitAllocation(models.Model):
-    request_item = models.ForeignKey(RequestItem, on_delete=models.CASCADE, related_name='allocations')
-    unit = models.ForeignKey(EquipmentUnit, on_delete=models.CASCADE)
+    request_item = models.ForeignKey(
+        RequestItem,
+        on_delete=models.CASCADE,
+        related_name='allocations'
+    )
+    unit = models.ForeignKey(
+        EquipmentUnit,
+        on_delete=models.PROTECT
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['unit'],
+                name='unique_equipment_unit_allocation'
+            ),
+        ]
 
     def __str__(self):
-        return f"Unit {self.unit.asset_code} for Request #{self.request_item.request_id}"
+        return (
+            f"Unit {self.unit.asset_code} "
+            f"for Request #{self.request_item.request_id}"
+        )
 
 class Loan(models.Model):
     request = models.OneToOneField(BorrowRequest, on_delete=models.CASCADE, related_name='loan')

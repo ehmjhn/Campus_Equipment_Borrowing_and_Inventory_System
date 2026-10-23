@@ -5,24 +5,27 @@
 {% block admin_content %}
 <div class="page-container accounts-page">
     <header class="page-header">
+        <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+            <a class="breadcrumb-link" href="{% url 'admin_dashboard' %}">Dashboard</a>
+            <span class="breadcrumb-separator" aria-hidden="true">/</span>
+            <span class="breadcrumb-current" aria-current="page">Accounts</span>
+        </nav>
         <h2 class="page-title">Account Management</h2>
         <p class="page-description">Search and manage existing user accounts.</p>
     </header>
 
-    <section class="content-section">
-        <form class="filter-form" method="get" action="{% url 'account_management' %}">
-            <div class="form-group form-group--inline">
-                <label class="form-label visually-hidden" for="account-search">Search accounts</label>
-                <input class="form-input" id="account-search" type="text" name="q" value="{{ search_query }}" placeholder="Username, first name, last name, or email">
-            </div>
-            <div class="form-actions">
-                <button class="btn btn--primary" type="submit">Search</button>
-                {% if search_query %}
-                    <a class="btn btn--link" href="{% url 'account_management' %}">Clear</a>
-                {% endif %}
-            </div>
+    <div class="card-toolbar mb-4">
+        <form class="filter-form d-flex-gap" method="get" action="{% url 'account_management' %}">
+            <label class="visually-hidden" for="account-search">Search accounts</label>
+            <input class="form-input form-input--search" id="account-search" type="search" name="q" value="{{ search_query }}" placeholder="Search username, name, or email..." aria-label="Search accounts">
+            <button class="btn btn--primary" type="submit">Search</button>
+            {% if search_query %}
+                <a class="btn btn--link" href="{% url 'account_management' %}">Clear</a>
+            {% endif %}
         </form>
+    </div>
 
+    <section class="content-card">
         <div class="table-responsive">
             <table class="data-table">
                 <thead>
@@ -38,22 +41,22 @@
                 <tbody>
                     {% for row in page_obj %}
                         <tr>
-                            <td data-label="Username">{{ row.user.username }}</td>
-                            <td data-label="Full Name">{{ row.user.get_full_name|default:"—" }}</td>
-                            <td data-label="Email">{{ row.user.email|default:"—" }}</td>
-                            <td data-label="Role">{{ row.profile.get_role_display }}</td>
-                            <td data-label="Status">
+                            <td><strong>{{ row.user.username }}</strong></td>
+                            <td>{{ row.user.get_full_name|default:"—" }}</td>
+                            <td>{{ row.user.email|default:"—" }}</td>
+                            <td>{{ row.profile.get_role_display }}</td>
+                            <td>
                                 <span class="badge badge--{% if row.is_active %}success{% else %}danger{% endif %}">
                                     {% if row.is_active %}Active{% else %}Inactive{% endif %}
                                 </span>
                             </td>
-                            <td data-label="Action">
+                            <td>
                                 {% if row.user.id == request.user.id %}
                                     <span class="text-muted">Current account</span>
                                 {% else %}
                                     <form class="inline-form" method="post" action="{% url 'toggle_account_status' row.user.id %}">
                                         {% csrf_token %}
-                                        <button class="btn btn--sm {% if row.is_active %}btn--danger{% else %}btn--success{% endif %}" type="submit">
+                                        <button class="btn btn--sm {% if row.is_active %}btn--danger{% else %}btn--success{% endif %}" type="submit" onclick="return confirm('{% if row.is_active %}Deactivate{% else %}Activate{% endif %} this account?');">
                                             {% if row.is_active %}Deactivate{% else %}Activate{% endif %}
                                         </button>
                                     </form>
@@ -68,22 +71,28 @@
                 </tbody>
             </table>
         </div>
-
-        <footer class="pagination-container">
-            <p class="pagination-info">Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.</p>
-            
-            <nav aria-label="Account pages" class="pagination-nav">
-                {% if page_obj.has_previous %}
-                    <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page=1">First</a>
-                    <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page={{ page_obj.previous_page_number }}">Previous</a>
-                {% endif %}
-
-                {% if page_obj.has_next %}
-                    <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page={{ page_obj.next_page_number }}">Next</a>
-                    <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page={{ page_obj.paginator.num_pages }}">Last</a>
-                {% endif %}
-            </nav>
-        </footer>
     </section>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+        <nav class="pagination-nav mt-4 text-center" aria-label="Account pages">
+            {% if page_obj.has_previous %}
+                <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page=1">First</a>
+                <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page={{ page_obj.previous_page_number }}">Previous</a>
+            {% else %}
+                <button class="btn btn--outline" disabled>First</button>
+                <button class="btn btn--outline" disabled>Previous</button>
+            {% endif %}
+
+            <span class="pagination-info mx-3">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+            {% if page_obj.has_next %}
+                <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page={{ page_obj.next_page_number }}">Next</a>
+                <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page={{ page_obj.paginator.num_pages }}">Last</a>
+            {% else %}
+                <button class="btn btn--outline" disabled>Next</button>
+                <button class="btn btn--outline" disabled>Last</button>
+            {% endif %}
+        </nav>
+    {% endif %}
 </div>
 {% endblock %}

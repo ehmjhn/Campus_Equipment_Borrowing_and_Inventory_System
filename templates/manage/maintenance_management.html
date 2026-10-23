@@ -1,133 +1,159 @@
-{% extends "manage/operations_layout.html" %}
+{% extends "manage/layout.html" %}
 
-{% block page_title %}Maintenance | System Administration{% endblock %}
+{% block page_title %}Maintenance{% endblock %}
 
 {% block admin_content %}
 <div class="page-container maintenance-page">
     <header class="page-header">
-        <p class="page-header__eyebrow">A6 · Maintenance and Inventory Reconciliation</p>
-        <h2 class="page-title">Maintenance and Inventory Reconciliation</h2>
+        <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+            <a class="breadcrumb-link" href="{% url 'admin_dashboard' %}">Dashboard</a>
+            <span class="breadcrumb-separator" aria-hidden="true">/</span>
+            <span class="breadcrumb-current" aria-current="page">Maintenance</span>
+        </nav>
+        <h2 class="page-title">Maintenance &amp; Inventory Reconciliation</h2>
         <p class="page-description">Track repairs, return repaired units to service, and reconcile counts against all physical units.</p>
     </header>
 
+    <div class="grid-layout grid-layout--maintenance mb-5">
+        <!-- Physical Unit Inventory Counts -->
+        <section class="content-card">
+            <header class="card-header">
+                <h3 class="card-title">Inventory Counts</h3>
+                <p class="card-description">Live counts from equipment-unit records.</p>
+            </header>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Inventory Status</th>
+                            <th scope="col" class="text-right">Unit Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in inventory_counts %}
+                            <tr>
+                                <td>{{ row.label }}</td>
+                                <td class="text-right">{{ row.count }}</td>
+                            </tr>
+                        {% endfor %}
+                        <tr class="table-row--highlight">
+                            <th scope="row">Classified Status Total</th>
+                            <th class="text-right">{{ classified_total }}</th>
+                        </tr>
+                        <tr class="table-row--highlight">
+                            <th scope="row">Physical Unit Total</th>
+                            <th class="text-right">{{ inventory_total }}</th>
+                        </tr>
+                        <tr class="table-row--{% if unclassified_total == 0 %}success{% else %}danger{% endif %}">
+                            <th scope="row">Reconciliation Difference</th>
+                            <th class="text-right">{{ unclassified_total }}</th>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer p-3">
+                {% if unclassified_total == 0 %}
+                    <p class="alert alert--success mb-0">Inventory counts reconcile perfectly.</p>
+                {% else %}
+                    <p class="alert alert--danger mb-0">Counts do not reconcile. Review unit states.</p>
+                {% endif %}
+            </div>
+        </section>
+
+        <!-- Open Maintenance Record Form -->
+        <section class="content-card form-section">
+            <header class="card-header">
+                <h3 class="card-title">Open Maintenance Record</h3>
+                <p class="card-description">Move an available unit into maintenance.</p>
+            </header>
+            <div class="card-body">
+                <form class="standard-form" method="post" action="{% url 'open_maintenance_record' %}">
+                    {% csrf_token %}
+                    <div class="form-group mb-3">
+                        <label class="form-label" for="maintenance-unit">Equipment Unit</label>
+                        <select class="form-select" id="maintenance-unit" name="unit_id" required>
+                            <option value="">Select an available unit</option>
+                            {% for unit in maintenance_candidates %}
+                                <option value="{{ unit.id }}">{{ unit.asset_code }} — {{ unit.catalog_item.name }}</option>
+                            {% empty %}
+                                <option value="" disabled>No eligible units are available</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label" for="maintenance-problem">Problem Description</label>
+                        <textarea class="form-textarea" id="maintenance-problem" name="problem_description" rows="3" maxlength="5000" required></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn--primary w-100" type="submit" {% if not maintenance_candidates %}disabled{% endif %}>Open Maintenance</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </div>
+
+    <!-- Maintenance Records Section -->
     <section class="content-section">
         <header class="section-header">
-            <h3 class="section-title">Physical Unit Inventory Counts</h3>
-            <p class="section-description">Counts are calculated directly from equipment-unit records.</p>
+            <h3 class="section-title">Maintenance Records</h3>
         </header>
-        <div class="table-responsive">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th scope="col">Inventory Status</th>
-                        <th scope="col">Unit Count</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in inventory_counts %}
-                        <tr>
-                            <td>{{ row.label }}</td>
-                            <td>{{ row.count }}</td>
-                        </tr>
-                    {% endfor %}
-                    <tr>
-                        <th scope="row">Classified Status Total</th>
-                        <th>{{ classified_total }}</th>
-                    </tr>
-                    <tr>
-                        <th scope="row">Physical Unit Total</th>
-                        <th>{{ inventory_total }}</th>
-                    </tr>
-                    <tr>
-                        <th scope="row">Unclassified / Reconciliation Difference</th>
-                        <th>{{ unclassified_total }}</th>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        {% if unclassified_total == 0 %}
-            <p class="alert alert--success">Inventory counts reconcile: classified status counts equal the physical-unit total.</p>
-        {% else %}
-            <p class="alert alert--danger">Inventory counts do not reconcile. Review equipment units with a status outside the required inventory states.</p>
-        {% endif %}
-    </section>
 
-    <section class="content-card form-section mt-4">
-        <header class="card-header">
-            <h3 class="card-title">Open Maintenance Record</h3>
-            <p class="card-description">Only available units can be selected here. Issued, reserved, and retired units cannot be placed into maintenance.</p>
-        </header>
-        <div class="card-body">
-            <form class="standard-form grid-form" method="post" action="{% url 'open_maintenance_record' %}">
-                {% csrf_token %}
-                <div class="form-group">
-                    <label class="form-label" for="maintenance-unit">Equipment Unit</label>
-                    <select class="form-select" id="maintenance-unit" name="unit_id" required>
-                        <option value="">Select an available unit</option>
-                        {% for unit in maintenance_candidates %}
-                            <option value="{{ unit.id }}">{{ unit.asset_code }} — {{ unit.catalog_item.name }} ({{ unit.status }})</option>
-                        {% empty %}
-                            <option value="" disabled>No eligible units are available</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group form-group--full">
-                    <label class="form-label" for="maintenance-problem">Problem Description</label>
-                    <textarea class="form-textarea" id="maintenance-problem" name="problem_description" rows="3" maxlength="5000" required></textarea>
-                </div>
-                <div class="form-actions">
-                    <button class="btn btn--primary" type="submit" {% if not maintenance_candidates %}disabled{% endif %}>Open Maintenance</button>
-                </div>
+        <div class="card-toolbar mb-4">
+            <form class="filter-form d-flex-gap" method="get">
+                <label class="visually-hidden" for="maintenance-search">Search records</label>
+                <input class="form-input form-input--search" id="maintenance-search" type="search" name="q" value="{{ search_query }}" placeholder="Search asset code, problem, or admin..." aria-label="Search records">
+                <button class="btn btn--primary" type="submit">Search</button>
+                {% if search_query %}
+                    <a class="btn btn--link" href="{% url 'maintenance_management' %}">Clear</a>
+                {% endif %}
             </form>
         </div>
-    </section>
 
-    <form class="filter-form grid-form mt-4" method="get">
-        <div class="form-group form-group--large">
-            <label for="maintenance-search">Search maintenance records</label>
-            <input class="form-input" id="maintenance-search" type="search" name="q" value="{{ search_query }}" placeholder="Asset code, equipment, problem, action, or admin">
-        </div>
-        <div class="form-actions form-group d-flex-gap">
-            <button class="btn btn--primary" type="submit">Search</button>
-            <a class="btn btn--outline" href="{% url 'maintenance_management' %}">Reset</a>
-        </div>
-    </form>
-
-    <section class="content-section mt-4">
-        <header class="section-header">
-            <h3 class="section-title">Open Maintenance Records</h3>
-        </header>
-        {% for record in open_records %}
-            <article class="content-card mb-4">
-                <header class="card-header d-flex-between">
-                    <h4 class="card-title">Record #{{ record.id }} · {{ record.unit.asset_code }}</h4>
-                    <span class="badge badge--maintenance">Open</span>
-                </header>
-                <div class="card-body">
-                    <p><strong>Equipment:</strong> {{ record.unit.catalog_item.name }}</p>
-                    <p><strong>Problem:</strong> {{ record.problem_description }}</p>
-                    <p><strong>Opened:</strong> {{ record.reported_at|date:"M d, Y h:i A" }}</p>
-                    <p><strong>Handled By:</strong> {{ record.handled_by.get_full_name|default:record.handled_by.username|default:"Not assigned" }}</p>
-                    <form method="post" action="{% url 'close_maintenance_record' record.id %}">
-                        {% csrf_token %}
-                        <div class="form-group">
-                            <label class="form-label" for="action-{{ record.id }}">Repair / Action Taken</label>
-                            <textarea class="form-textarea" id="action-{{ record.id }}" name="action_taken" rows="3" maxlength="5000" required></textarea>
+        <h4 class="mb-3">Open Records</h4>
+        <div class="open-records-list mb-5">
+            {% for record in open_records %}
+                <article class="content-card mb-4">
+                    <header class="card-header d-flex-between">
+                        <h4 class="card-title">Record #{{ record.id }} · {{ record.unit.asset_code }}</h4>
+                        <span class="badge badge--maintenance">Open</span>
+                    </header>
+                    <div class="card-body">
+                        <div class="data-grid data-grid--3-col mb-3">
+                            <div class="data-group">
+                                <strong class="data-label">Equipment</strong>
+                                <p class="data-value">{{ record.unit.catalog_item.name }}</p>
+                            </div>
+                            <div class="data-group">
+                                <strong class="data-label">Opened</strong>
+                                <p class="data-value">{{ record.reported_at|date:"M d, Y h:i A" }}</p>
+                            </div>
+                            <div class="data-group">
+                                <strong class="data-label">Handled By</strong>
+                                <p class="data-value">{{ record.handled_by.get_full_name|default:record.handled_by.username|default:"Not assigned" }}</p>
+                            </div>
                         </div>
-                        <button class="btn btn--success" type="submit" onclick="return confirm('Close this maintenance record?');">Close Maintenance</button>
-                    </form>
-                </div>
-            </article>
-        {% empty %}
-            <div class="alert alert--info">There are no open maintenance records matching your search.</div>
-        {% endfor %}
-    </section>
+                        <div class="data-group mb-4">
+                            <strong class="data-label">Problem</strong>
+                            <p class="data-value">{{ record.problem_description }}</p>
+                        </div>
 
-    <section class="content-section mt-5">
-        <header class="section-header">
-            <h3 class="section-title">Closed Maintenance History</h3>
-        </header>
-        <div class="table-responsive">
+                        <form class="border-top pt-3" method="post" action="{% url 'close_maintenance_record' record.id %}">
+                            {% csrf_token %}
+                            <div class="form-group mb-2">
+                                <label class="form-label" for="action-{{ record.id }}">Repair / Action Taken</label>
+                                <textarea class="form-textarea" id="action-{{ record.id }}" name="action_taken" rows="2" maxlength="5000" required placeholder="Describe the fix..."></textarea>
+                            </div>
+                            <button class="btn btn--success" type="submit" onclick="return confirm('Close this maintenance record and return unit to available?');">Close Maintenance</button>
+                        </form>
+                    </div>
+                </article>
+            {% empty %}
+                <div class="alert alert--info">There are no open maintenance records matching your search.</div>
+            {% endfor %}
+        </div>
+
+        <h4 class="mb-3">Closed Maintenance History</h4>
+        <div class="table-responsive content-card">
             <table class="data-table">
                 <thead>
                     <tr>
@@ -138,23 +164,23 @@
                         <th scope="col">Opened</th>
                         <th scope="col">Closed</th>
                         <th scope="col">Admin</th>
-                        <th scope="col">Current Status</th>
+                        <th scope="col">Status</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for record in closed_records %}
                         <tr>
-                            <td>#{{ record.id }}</td>
+                            <td><strong>#{{ record.id }}</strong></td>
                             <td>{{ record.unit.asset_code }}</td>
-                            <td>{{ record.problem_description }}</td>
-                            <td>{{ record.action_taken|default:"No action recorded" }}</td>
+                            <td>{{ record.problem_description|truncatechars:50 }}</td>
+                            <td>{{ record.action_taken|default:"No action recorded"|truncatechars:50 }}</td>
                             <td>{{ record.reported_at|date:"M d, Y" }}</td>
-                            <td>{{ record.fixed_at|date:"M d, Y h:i A" }}</td>
-                            <td>{{ record.handled_by.get_full_name|default:record.handled_by.username|default:"Not assigned" }}</td>
-                            <td>{{ record.unit.status }}</td>
+                            <td>{{ record.fixed_at|date:"M d, Y" }}</td>
+                            <td>{{ record.handled_by.username|default:"—" }}</td>
+                            <td><span class="badge badge--{{ record.unit.status|slugify }}">{{ record.unit.status }}</span></td>
                         </tr>
                     {% empty %}
-                        <tr><td colspan="8">No closed maintenance records found.</td></tr>
+                        <tr><td colspan="8" class="text-center text-muted">No closed maintenance records found.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

@@ -1,25 +1,29 @@
-{% extends "manage/operations_layout.html" %}
+{% extends "manage/layout.html" %}
 
-{% block page_title %}Equipment Release | System Administration{% endblock %}
+{% block page_title %}Equipment Release{% endblock %}
 
 {% block admin_content %}
 <div class="page-container release-page">
     <header class="page-header">
-        <p class="page-header__eyebrow">A4 · Equipment Release</p>
+        <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+            <a class="breadcrumb-link" href="{% url 'admin_dashboard' %}">Dashboard</a>
+            <span class="breadcrumb-separator" aria-hidden="true">/</span>
+            <span class="breadcrumb-current" aria-current="page">Equipment Release</span>
+        </nav>
         <h2 class="page-title">Equipment Release</h2>
         <p class="page-description">Issue approved requests, review reserved asset codes, and print borrowing slips.</p>
     </header>
 
-    <form class="filter-form grid-form" method="get">
-        <div class="form-group form-group--large">
-            <label for="release-search">Search requests and loans</label>
-            <input class="form-input" id="release-search" type="search" name="q" value="{{ search_query }}" placeholder="Borrower, equipment, purpose, or asset code">
-        </div>
-        <div class="form-actions form-group d-flex-gap">
+    <div class="card-toolbar mb-4">
+        <form class="filter-form d-flex-gap" method="get">
+            <label class="visually-hidden" for="release-search">Search requests and loans</label>
+            <input class="form-input form-input--search" id="release-search" type="search" name="q" value="{{ search_query }}" placeholder="Search borrower, equipment, purpose, or asset code" aria-label="Search">
             <button class="btn btn--primary" type="submit">Search</button>
-            <a class="btn btn--outline" href="{% url 'release_management' %}">Reset</a>
-        </div>
-    </form>
+            {% if search_query %}
+                <a class="btn btn--link" href="{% url 'release_management' %}">Clear</a>
+            {% endif %}
+        </form>
+    </div>
 
     <section class="content-section">
         <header class="section-header">
@@ -28,35 +32,36 @@
         </header>
 
         {% for borrow_request in approved_requests %}
-            <article class="content-card request-card mb-4">
+            <article class="content-card mb-4">
                 <header class="card-header d-flex-between">
                     <h4 class="card-title">Request #{{ borrow_request.id }}</h4>
                     <span class="badge badge--approved">{{ borrow_request.status }}</span>
                 </header>
+
                 <div class="card-body">
-                    <div class="request-details-grid">
-                        <div class="detail-group">
-                            <strong class="detail-label">Borrower</strong>
-                            <p class="detail-value">{{ borrow_request.user.get_full_name|default:borrow_request.user.username }}</p>
-                            <small>{{ borrow_request.user.username }} · {{ borrow_request.user.email|default:"No email provided" }}</small>
+                    <div class="data-grid data-grid--3-col">
+                        <div class="data-group">
+                            <strong class="data-label">Borrower</strong>
+                            <p class="data-value">{{ borrow_request.user.get_full_name|default:borrow_request.user.username }}</p>
+                            <small class="text-muted">{{ borrow_request.user.username }} · {{ borrow_request.user.email|default:"No email provided" }}</small>
                         </div>
-                        <div class="detail-group">
-                            <strong class="detail-label">Requested</strong>
-                            <p class="detail-value">{{ borrow_request.requested_at|date:"M d, Y h:i A" }}</p>
+                        <div class="data-group">
+                            <strong class="data-label">Requested Date</strong>
+                            <p class="data-value">{{ borrow_request.requested_at|date:"M d, Y h:i A" }}</p>
                         </div>
-                        <div class="detail-group">
-                            <strong class="detail-label">Due Date</strong>
-                            <p class="detail-value">{{ borrow_request.return_date|date:"M d, Y" }}</p>
+                        <div class="data-group">
+                            <strong class="data-label">Due Date</strong>
+                            <p class="data-value">{{ borrow_request.return_date|date:"M d, Y" }}</p>
                         </div>
                     </div>
 
-                    <div class="detail-group mt-3">
-                        <strong class="detail-label">Purpose</strong>
-                        <p class="detail-value">{{ borrow_request.purpose }}</p>
+                    <div class="data-group mt-3">
+                        <strong class="data-label">Purpose</strong>
+                        <p class="data-value">{{ borrow_request.purpose }}</p>
                     </div>
 
-                    <div class="table-responsive mt-3">
-                        <table class="data-table">
+                    <div class="table-responsive mt-4">
+                        <table class="data-table data-table--sm">
                             <thead>
                                 <tr>
                                     <th scope="col">Equipment</th>
@@ -71,14 +76,14 @@
                                         <td>{{ request_item.quantity }}</td>
                                         <td>
                                             {% for allocation in request_item.allocations.all %}
-                                                {{ allocation.unit.asset_code }}{% if not forloop.last %}, {% endif %}
+                                                <span class="badge badge--outline">{{ allocation.unit.asset_code }}</span>
                                             {% empty %}
-                                                Not allocated
+                                                <span class="text-muted">Not allocated</span>
                                             {% endfor %}
                                         </td>
                                     </tr>
                                 {% empty %}
-                                    <tr><td colspan="3">No equipment items are recorded for this request.</td></tr>
+                                    <tr><td colspan="3" class="text-center text-muted">No equipment items are recorded for this request.</td></tr>
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -87,30 +92,38 @@
                     {% if borrow_request.admin_remarks %}
                         <div class="alert alert--neutral mt-3">
                             <strong>Admin Remarks</strong>
-                            <p>{{ borrow_request.admin_remarks }}</p>
+                            <p class="mb-0">{{ borrow_request.admin_remarks }}</p>
                         </div>
                     {% endif %}
 
-                    <div class="request-actions-grid mt-4">
-                        <form method="post" action="{% url 'issue_approved_request' borrow_request.id %}">
-                            {% csrf_token %}
-                            <p>Issue this request to create a loan and mark its reserved units as issued.</p>
-                            <button class="btn btn--primary" type="submit" onclick="return confirm('Issue the reserved equipment for this request?');">Issue Equipment</button>
-                        </form>
+                    <div class="grid-layout mt-4 border-top pt-4">
+                        <!-- Issue Equipment Form -->
+                        <div class="action-block">
+                            <form method="post" action="{% url 'issue_approved_request' borrow_request.id %}">
+                                {% csrf_token %}
+                                <strong class="d-block mb-2">Ready to Release?</strong>
+                                <p class="text-muted mb-3">Issue this request to create a loan and mark its reserved units as issued.</p>
+                                <button class="btn btn--success" type="submit" onclick="return confirm('Issue the reserved equipment for this request?');">Issue Equipment</button>
+                            </form>
+                        </div>
 
-                        <form method="post" action="{% url 'revise_approved_due_date' borrow_request.id %}">
-                            {% csrf_token %}
-                            <div class="form-group">
-                                <label class="form-label" for="due-date-{{ borrow_request.id }}">Revise Due Date Before Issue</label>
-                                <input class="form-input" id="due-date-{{ borrow_request.id }}" type="date" name="due_date" min="{{ today|date:'Y-m-d' }}" max="{{ max_due_date|date:'Y-m-d' }}" value="{% if borrow_request.return_date >= today %}{{ borrow_request.return_date|date:'Y-m-d' }}{% else %}{{ max_due_date|date:'Y-m-d' }}{% endif %}" required>
-                                <small>Maximum duration: {{ max_loan_duration_days }} calendar days from today.</small>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" for="due-reason-{{ borrow_request.id }}">Reason for revision</label>
-                                <textarea class="form-textarea" id="due-reason-{{ borrow_request.id }}" name="reason" rows="2" maxlength="1000" required></textarea>
-                            </div>
-                            <button class="btn btn--outline" type="submit">Save Revised Due Date</button>
-                        </form>
+                        <!-- Revise Due Date Form -->
+                        <div class="action-block">
+                            <form method="post" action="{% url 'revise_approved_due_date' borrow_request.id %}">
+                                {% csrf_token %}
+                                <strong class="d-block mb-2">Need to Extend or Shorten?</strong>
+                                <div class="form-group mb-2">
+                                    <label class="form-label visually-hidden" for="due-date-{{ borrow_request.id }}">Revise Due Date</label>
+                                    <input class="form-input" id="due-date-{{ borrow_request.id }}" type="date" name="due_date" min="{{ today|date:'Y-m-d' }}" max="{{ max_due_date|date:'Y-m-d' }}" value="{% if borrow_request.return_date >= today %}{{ borrow_request.return_date|date:'Y-m-d' }}{% else %}{{ max_due_date|date:'Y-m-d' }}{% endif %}" required>
+                                    <small class="text-muted">Max {{ max_loan_duration_days }} days from today.</small>
+                                </div>
+                                <div class="form-group mb-2">
+                                    <label class="form-label visually-hidden" for="due-reason-{{ borrow_request.id }}">Reason for revision</label>
+                                    <textarea class="form-textarea" id="due-reason-{{ borrow_request.id }}" name="reason" rows="1" maxlength="1000" required placeholder="Reason for revision..."></textarea>
+                                </div>
+                                <button class="btn btn--outline btn--sm w-100" type="submit">Save Revised Due Date</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </article>
@@ -119,13 +132,19 @@
         {% endfor %}
 
         {% if page_obj.paginator.num_pages > 1 %}
-            <nav class="pagination-nav mt-4" aria-label="Approved request pages">
+            <nav class="pagination-nav mt-4 text-center" aria-label="Approved request pages">
                 {% if page_obj.has_previous %}
                     <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page={{ page_obj.previous_page_number }}">Previous</a>
+                {% else %}
+                    <button class="btn btn--outline" disabled>Previous</button>
                 {% endif %}
-                <span class="pagination-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+                <span class="pagination-info mx-3">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
                 {% if page_obj.has_next %}
                     <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page={{ page_obj.next_page_number }}">Next</a>
+                {% else %}
+                    <button class="btn btn--outline" disabled>Next</button>
                 {% endif %}
             </nav>
         {% endif %}
@@ -136,7 +155,7 @@
             <h3 class="section-title">Issued Loans and Borrowing Slips</h3>
             <p class="section-description">Open a slip to print or reprint the borrower and assigned asset details.</p>
         </header>
-        <div class="table-responsive">
+        <div class="table-responsive content-card">
             <table class="data-table">
                 <thead>
                     <tr>
@@ -151,15 +170,18 @@
                 <tbody>
                     {% for loan in issued_loans %}
                         <tr>
-                            <td>#{{ loan.id }} / Request #{{ loan.request_id }}</td>
+                            <td>
+                                <strong>#{{ loan.id }}</strong>
+                                <small class="d-block text-muted">Req #{{ loan.request_id }}</small>
+                            </td>
                             <td>{{ loan.request.user.get_full_name|default:loan.request.user.username }}</td>
                             <td>{{ loan.issued_at|date:"M d, Y h:i A" }}</td>
                             <td>{{ loan.request.return_date|date:"M d, Y" }}</td>
-                            <td>{{ loan.request.status }}</td>
-                            <td><a class="btn btn--outline" href="{% url 'borrowing_slip' loan.request_id %}">View / Print Slip</a></td>
+                            <td><span class="badge badge--{{ loan.request.status|slugify }}">{{ loan.request.status }}</span></td>
+                            <td><a class="btn btn--sm btn--outline" href="{% url 'borrowing_slip' loan.request_id %}">View Slip</a></td>
                         </tr>
                     {% empty %}
-                        <tr><td colspan="6">No issued loans found.</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted">No issued loans found.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

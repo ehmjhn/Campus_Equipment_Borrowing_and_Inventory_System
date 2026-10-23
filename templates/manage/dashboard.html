@@ -1,40 +1,41 @@
 {% extends "manage/layout.html" %}
 
-{% block page_title %}Dashboard | System Administration{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
 
 {% block admin_content %}
 <div class="page-container dashboard-page">
     <header class="page-header">
-        <p class="page-header__eyebrow">Overview</p>
+        <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+            <span class="breadcrumb-current" aria-current="page">Dashboard</span>
+        </nav>
         <h2 class="page-title">Dashboard</h2>
         <p class="page-description">A live overview of equipment availability and borrowing activity.</p>
     </header>
 
-    <section class="content-section dashboard-metrics-section" aria-labelledby="operational-metrics-heading">
-        <header class="section-header">
+    <section class="content-section mb-5" aria-labelledby="operational-metrics-heading">
+        <header class="section-header visually-hidden">
             <h3 class="section-title" id="operational-metrics-heading">Live Operational Metrics</h3>
-            <p class="section-description">Current counts based on recorded inventory and borrowing activity.</p>
         </header>
 
-        <div class="metrics-grid">
-            <article class="metric-card">
-                <h4 class="metric-card__label">Available Equipment Units</h4>
-                <p class="metric-card__value">{{ available_units }}</p>
+        <div class="data-grid data-grid--4-col">
+            <article class="content-card text-center p-4">
+                <h4 class="text-muted text-sm text-uppercase mb-2">Available Equipment</h4>
+                <p class="text-xl font-weight-bold text-success mb-0">{{ available_units }}</p>
             </article>
-            
-            <article class="metric-card">
-                <h4 class="metric-card__label">Pending Borrow Requests</h4>
-                <p class="metric-card__value">{{ pending_requests }}</p>
+
+            <article class="content-card text-center p-4">
+                <h4 class="text-muted text-sm text-uppercase mb-2">Pending Requests</h4>
+                <p class="text-xl font-weight-bold text-warning mb-0">{{ pending_requests }}</p>
             </article>
-            
-            <article class="metric-card">
-                <h4 class="metric-card__label">Active Loans</h4>
-                <p class="metric-card__value">{{ active_loans }}</p>
+
+            <article class="content-card text-center p-4">
+                <h4 class="text-muted text-sm text-uppercase mb-2">Active Loans</h4>
+                <p class="text-xl font-weight-bold text-primary mb-0">{{ active_loans }}</p>
             </article>
-            
-            <article class="metric-card">
-                <h4 class="metric-card__label">Overdue Loans</h4>
-                <p class="metric-card__value">{{ overdue_loans }}</p>
+
+            <article class="content-card text-center p-4">
+                <h4 class="text-muted text-sm text-uppercase mb-2">Overdue Loans</h4>
+                <p class="text-xl font-weight-bold text-danger mb-0">{{ overdue_loans }}</p>
             </article>
         </div>
     </section>
@@ -45,54 +46,86 @@
             <p class="section-description">Charts and exports use live loan and physical-unit allocation records.</p>
         </header>
 
-        <form method="get" action="{% url 'admin_dashboard' %}" class="report-filter">
-            <label>
-                Issued from
-                <input type="date" name="date_from" value="{{ date_from }}">
-            </label>
-            <label>
-                Issued through
-                <input type="date" name="date_to" value="{{ date_to }}">
-            </label>
-            <button type="submit">Apply date range</button>
-            <a href="{% url 'admin_dashboard' %}">Clear</a>
-            <a href="{% url 'dashboard_report_csv' %}?date_from={{ date_from }}&amp;date_to={{ date_to }}">Download CSV</a>
-        </form>
+        <div class="card-toolbar mb-4">
+            <form class="filter-form d-flex-between align-items-end w-100" method="get" action="{% url 'admin_dashboard' %}">
+                <div class="d-flex-gap align-items-end">
+                    <div class="form-group mb-0">
+                        <label class="form-label" for="date-from">Issued from</label>
+                        <input class="form-input" type="date" id="date-from" name="date_from" value="{{ date_from }}">
+                    </div>
+                    <div class="form-group mb-0">
+                        <label class="form-label" for="date-to">Issued through</label>
+                        <input class="form-input" type="date" id="date-to" name="date_to" value="{{ date_to }}">
+                    </div>
+                    <div class="form-group mb-0">
+                        <button class="btn btn--primary" type="submit">Apply Range</button>
+                        {% if date_from or date_to %}
+                            <a class="btn btn--link ml-2" href="{% url 'admin_dashboard' %}">Clear</a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <a class="btn btn--success" href="{% url 'dashboard_report_csv' %}?date_from={{ date_from }}&amp;date_to={{ date_to }}">
+                        Download CSV Report
+                    </a>
+                </div>
+            </form>
+        </div>
 
-        <div class="report-charts">
-            <section aria-labelledby="monthly-issued-heading">
-                <h4 id="monthly-issued-heading">Monthly issued loans</h4>
-                {% if monthly_issued %}
-                    <ol class="chart-list">
-                        {% for row in monthly_issued %}
-                            <li>
-                                <span>{{ row.month|date:"M Y" }}</span>
-                                <span style="display:inline-block;width:12rem;height:0.8rem;background:#e5e7eb;vertical-align:middle;"><span style="display:block;height:100%;width:{% widthratio row.count max_monthly_issued 100 %}%;background:#2563eb;"></span></span>
-                                <strong>{{ row.count }}</strong>
-                            </li>
-                        {% endfor %}
-                    </ol>
-                {% else %}
-                    <p>No issued loans match this date range.</p>
-                {% endif %}
-            </section>
+        <div class="grid-layout">
+            <!-- Monthly Issued Loans Chart -->
+            <article class="content-card">
+                <header class="card-header">
+                    <h4 class="card-title text-md" id="monthly-issued-heading">Monthly Issued Loans</h4>
+                </header>
+                <div class="card-body">
+                    {% if monthly_issued %}
+                        <ol class="chart-list list-unstyled mb-0" style="padding-left: 0;">
+                            {% for row in monthly_issued %}
+                                <li style="margin-bottom: 1.25rem;">
+                                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.35rem;">
+                                        <span style="font-size: 0.875rem; font-weight: 500; color: #374151;">{{ row.month|date:"F Y" }}</span>
+                                        <strong style="font-size: 0.875rem; color: #111827;">{{ row.count }} <span style="font-size: 0.75rem; font-weight: normal; color: #6b7280;">loans</span></strong>
+                                    </div>
+                                    <div style="height: 0.75rem; background-color: #f3f4f6; border-radius: 9999px; overflow: hidden;">
+                                        <div style="height: 100%; background-color: #3b82f6; border-radius: 9999px; width: {% widthratio row.count max_monthly_issued 100 %}%;"></div>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ol>
+                    {% else %}
+                        <p class="text-muted text-center mb-0">No issued loans match this date range.</p>
+                    {% endif %}
+                </div>
+            </article>
 
-            <section aria-labelledby="category-usage-heading">
-                <h4 id="category-usage-heading">Category usage (units issued)</h4>
-                {% if category_usage %}
-                    <ol class="chart-list">
-                        {% for row in category_usage %}
-                            <li>
-                                <span>{{ row.request_item__catalog_item__category__name }}</span>
-                                <span style="display:inline-block;width:12rem;height:0.8rem;background:#e5e7eb;vertical-align:middle;"><span style="display:block;height:100%;width:{% widthratio row.count max_category_usage 100 %}%;background:#2563eb;"></span></span>
-                                <strong>{{ row.count }}</strong>
-                            </li>
-                        {% endfor %}
-                    </ol>
-                {% else %}
-                    <p>No issued units match this date range.</p>
-                {% endif %}
-            </section>
+            <!-- Category Usage Chart -->
+            <article class="content-card">
+                <header class="card-header">
+                    <h4 class="card-title text-md" id="category-usage-heading">Category Usage (Units Issued)</h4>
+                </header>
+                <div class="card-body">
+                    {% if category_usage %}
+                        <ol class="chart-list list-unstyled mb-0" style="padding-left: 0;">
+                            {% for row in category_usage %}
+                                <li style="margin-bottom: 1.25rem;">
+                                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.35rem;">
+                                        <span style="font-size: 0.875rem; font-weight: 500; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 10px;" title="{{ row.request_item__catalog_item__category__name }}">
+                                            {{ row.request_item__catalog_item__category__name }}
+                                        </span>
+                                        <strong style="font-size: 0.875rem; color: #111827;">{{ row.count }} <span style="font-size: 0.75rem; font-weight: normal; color: #6b7280;">units</span></strong>
+                                    </div>
+                                    <div style="height: 0.75rem; background-color: #f3f4f6; border-radius: 9999px; overflow: hidden;">
+                                        <div style="height: 100%; background-color: #3b82f6; border-radius: 9999px; width: {% widthratio row.count max_category_usage 100 %}%;"></div>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ol>
+                    {% else %}
+                        <p class="text-muted text-center mb-0">No issued units match this date range.</p>
+                    {% endif %}
+                </div>
+            </article>
         </div>
     </section>
 </div>
