@@ -16,6 +16,11 @@ urlpatterns = [
         name="admin_dashboard",
     ),
     path(
+        "manage/reports/equipment-usage.csv",
+        views.dashboard_report_csv,
+        name="dashboard_report_csv",
+    ),
+    path(
         "manage/accounts/",
         views.account_management,
         name="account_management",

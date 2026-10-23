@@ -4,6 +4,11 @@ from . import admin_operations
 
 
 urlpatterns = [
+    path(
+        "manage/audit-settings/",
+        admin_operations.audit_settings_management,
+        name="audit_settings_management",
+    ),
     path("manage/releases/", admin_operations.release_management, name="release_management"),
     path("manage/releases/<int:request_id>/issue/", admin_operations.issue_approved_request, name="issue_approved_request"),
     path("manage/releases/<int:request_id>/revise-due-date/", admin_operations.revise_approved_due_date, name="revise_approved_due_date"),

@@ -147,5 +147,15 @@ class SystemSetting(models.Model):
     value = models.CharField(max_length=255)
     description = models.TextField(blank=True)
 
+    @classmethod
+    def get_int(cls, key, default):
+        setting_value = cls.objects.filter(key=key).values_list(
+            'value', flat=True
+        ).first()
+        try:
+            return max(1, int(setting_value))
+        except (TypeError, ValueError):
+            return default
+
     def __str__(self):
         return self.key

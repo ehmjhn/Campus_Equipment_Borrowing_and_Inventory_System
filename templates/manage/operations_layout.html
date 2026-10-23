@@ -41,7 +41,7 @@
                         <a class="admin-nav__link {% if request.resolver_match.url_name in 'maintenance_management,open_maintenance_record,close_maintenance_record' %}is-active{% endif %}" href="{% url 'maintenance_management' %}">Maintenance <span class="admin-nav__badge">A6</span></a>
                     </li>
                     <li class="admin-nav__item">
-                        <a class="admin-nav__link" href="#">Audit &amp; Settings <span class="admin-nav__badge">A8</span></a>
+                        <a class="admin-nav__link {% if request.resolver_match.url_name == 'audit_settings_management' %}is-active{% endif %}" href="{% url 'audit_settings_management' %}">Audit &amp; Settings <span class="admin-nav__badge">A8</span></a>
                     </li>
                 </ul>
             </nav>

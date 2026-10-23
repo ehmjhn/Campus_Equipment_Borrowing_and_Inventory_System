@@ -25,14 +25,20 @@ from .views import admin_required
 
 def _max_loan_duration_days():
     setting = SystemSetting.objects.filter(
-        key__in=["max_loan_duration_days", "max_loan_duration"]
-    ).order_by("key").first()
+        key="max_loan_duration_days"
+    ).first()
+    if setting is None:
+        setting = SystemSetting.objects.filter(key="max_loan_duration").first()
     if setting is None:
         return 7
     try:
         return max(1, int(setting.value))
     except (TypeError, ValueError):
         return 7
+
+
+def _max_quantity():
+    return SystemSetting.get_int("max_quantity", 5)
 
 
 def _request_search(queryset, search_query):
@@ -161,6 +167,7 @@ def revise_approved_due_date(request, request_id):
 @require_POST
 def issue_approved_request(request, request_id):
     today = timezone.localdate()
+    max_duration = _max_loan_duration_days()
 
     try:
         with transaction.atomic():
@@ -181,6 +188,13 @@ def issue_approved_request(request, request_id):
                 messages.error(
                     request,
                     "This request's due date has passed. Revise the due date with a recorded reason before issuing.",
+                )
+                return redirect("release_management")
+
+            if borrow_request.return_date > today + timedelta(days=max_duration):
+                messages.error(
+                    request,
+                    f"The due date exceeds the configured maximum loan duration of {max_duration} days.",
                 )
                 return redirect("release_management")
 
@@ -609,6 +623,97 @@ def maintenance_management(request):
             "classified_total": classified_total,
             "unclassified_total": unclassified_total,
             "search_query": search_query,
+        },
+    )
+
+
+@admin_required
+def audit_settings_management(request):
+    if request.method == "POST":
+        max_duration_text = request.POST.get("max_loan_duration_days", "").strip()
+        max_quantity_text = request.POST.get("max_quantity", "").strip()
+        try:
+            max_duration = int(max_duration_text)
+            max_quantity = int(max_quantity_text)
+        except (TypeError, ValueError):
+            messages.error(request, "Enter whole-number values for both settings.")
+            return redirect("audit_settings_management")
+
+        if not 1 <= max_duration <= 3650 or not 1 <= max_quantity <= 1000:
+            messages.error(
+                request,
+                "Maximum loan duration must be 1–3650 days and maximum quantity must be 1–1000 units.",
+            )
+            return redirect("audit_settings_management")
+
+        old_duration = _max_loan_duration_days()
+        old_quantity = _max_quantity()
+        with transaction.atomic():
+            SystemSetting.objects.update_or_create(
+                key="max_loan_duration_days",
+                defaults={
+                    "value": str(max_duration),
+                    "description": "Maximum permitted loan duration in calendar days.",
+                },
+            )
+            SystemSetting.objects.update_or_create(
+                key="max_quantity",
+                defaults={
+                    "value": str(max_quantity),
+                    "description": "Maximum number of physical units in one request.",
+                },
+            )
+            AuditLog.objects.create(
+                actor=request.user,
+                action="SYSTEM_SETTINGS_UPDATED",
+                details=(
+                    f"Updated maximum loan duration from {old_duration} to {max_duration} days "
+                    f"and maximum request quantity from {old_quantity} to {max_quantity} units."
+                ),
+            )
+        messages.success(request, "System settings updated.")
+        return redirect("audit_settings_management")
+
+    search_query = request.GET.get("q", "").strip()
+    date_from_text = request.GET.get("date_from", "").strip()
+    date_to_text = request.GET.get("date_to", "").strip()
+    date_from = parse_date(date_from_text) if date_from_text else None
+    date_to = parse_date(date_to_text) if date_to_text else None
+
+    logs = AuditLog.objects.select_related("actor").order_by("-timestamp", "-id")
+    if search_query:
+        logs = logs.filter(
+            Q(action__icontains=search_query)
+            | Q(details__icontains=search_query)
+            | Q(actor__username__icontains=search_query)
+        )
+
+    filters_valid = (
+        (not date_from_text or date_from is not None)
+        and (not date_to_text or date_to is not None)
+        and not (date_from and date_to and date_from > date_to)
+    )
+    if not filters_valid:
+        messages.error(request, "Enter a valid audit date range.")
+        date_from = None
+        date_to = None
+    if date_from:
+        logs = logs.filter(timestamp__date__gte=date_from)
+    if date_to:
+        logs = logs.filter(timestamp__date__lte=date_to)
+
+    page_obj = Paginator(logs, 25).get_page(request.GET.get("page"))
+    return render(
+        request,
+        "manage/audit_settings.html",
+        {
+            "page_obj": page_obj,
+            "logs": page_obj.object_list,
+            "search_query": search_query,
+            "date_from": date_from.isoformat() if date_from else "",
+            "date_to": date_to.isoformat() if date_to else "",
+            "max_loan_duration_days": _max_loan_duration_days(),
+            "max_quantity": _max_quantity(),
         },
     )
 

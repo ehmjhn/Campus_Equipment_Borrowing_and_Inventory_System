@@ -56,7 +56,7 @@
                         </a>
                     </li>
                     <li class="admin-nav__item">
-                        <a class="admin-nav__link" href="#">
+                        <a class="admin-nav__link {% if request.resolver_match.url_name == 'audit_settings_management' %}is-active{% endif %}" href="{% url 'audit_settings_management' %}">
                             Audit &amp; Settings <span class="admin-nav__badge">A8</span>
                         </a>
                     </li>

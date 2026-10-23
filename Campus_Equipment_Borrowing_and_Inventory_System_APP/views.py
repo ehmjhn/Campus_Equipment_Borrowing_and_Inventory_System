@@ -1,11 +1,13 @@
+import csv
 from functools import wraps
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import transaction, IntegrityError
-from django.db.models import Q
-from django.http import HttpResponseForbidden
+from django.db.models import Count, Q
+from django.db.models.functions import TruncMonth
+from django.http import HttpResponse, HttpResponseForbidden, HttpResponseBadRequest
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -22,6 +24,7 @@ from .models import (
     AuditLog,
     Category,
     CatalogItem,
+    SystemSetting,
 )
 
 User = get_user_model()
@@ -54,6 +57,21 @@ def admin_required(view_func):
 
 @admin_required
 def admin_dashboard(request):
+    date_from_text = request.GET.get("date_from", "").strip()
+    date_to_text = request.GET.get("date_to", "").strip()
+    date_from = parse_date(date_from_text) if date_from_text else None
+    date_to = parse_date(date_to_text) if date_to_text else None
+    filter_is_valid = (
+        (not date_from_text or date_from is not None)
+        and (not date_to_text or date_to is not None)
+        and not (date_from and date_to and date_from > date_to)
+    )
+
+    if not filter_is_valid:
+        messages.error(request, "Enter a valid date range with the start date on or before the end date.")
+        date_from = None
+        date_to = None
+
     available_units_count = EquipmentUnit.objects.filter(
         status=EquipmentUnit.AVAILABLE
     ).count()
@@ -77,14 +95,137 @@ def admin_dashboard(request):
         request__return_date__lt=timezone.now().date(),
     ).count()
 
+    loans = Loan.objects.select_related("request", "request__user", "issued_by")
+    allocations = UnitAllocation.objects.select_related(
+        "request_item__request__loan",
+        "request_item__catalog_item__category",
+        "unit",
+    )
+    if date_from:
+        loans = loans.filter(issued_at__date__gte=date_from)
+        allocations = allocations.filter(
+            request_item__request__loan__issued_at__date__gte=date_from
+        )
+    if date_to:
+        loans = loans.filter(issued_at__date__lte=date_to)
+        allocations = allocations.filter(
+            request_item__request__loan__issued_at__date__lte=date_to
+        )
+
+    monthly_issued = list(
+        loans.annotate(month=TruncMonth("issued_at"))
+        .values("month")
+        .annotate(count=Count("id"))
+        .order_by("-month")[:12]
+    )
+    monthly_issued.reverse()
+    category_usage = list(
+        allocations.values("request_item__catalog_item__category__name")
+        .annotate(count=Count("id"))
+        .order_by("-count", "request_item__catalog_item__category__name")[:10]
+    )
+    max_monthly_issued = max(
+        (row["count"] for row in monthly_issued),
+        default=0,
+    )
+    max_category_usage = max(
+        (row["count"] for row in category_usage),
+        default=0,
+    )
+
     context = {
         "available_units": available_units_count,
         "pending_requests": pending_requests_count,
         "active_loans": active_loans_count,
         "overdue_loans": overdue_loans_count,
+        "monthly_issued": monthly_issued,
+        "category_usage": category_usage,
+        "max_monthly_issued": max_monthly_issued,
+        "max_category_usage": max_category_usage,
+        "date_from": date_from.isoformat() if date_from else "",
+        "date_to": date_to.isoformat() if date_to else "",
     }
 
     return render(request, "manage/dashboard.html", context)
+
+
+@admin_required
+def dashboard_report_csv(request):
+    date_from_text = request.GET.get("date_from", "").strip()
+    date_to_text = request.GET.get("date_to", "").strip()
+    date_from = parse_date(date_from_text) if date_from_text else None
+    date_to = parse_date(date_to_text) if date_to_text else None
+    if (
+        (date_from_text and date_from is None)
+        or (date_to_text and date_to is None)
+        or (date_from and date_to and date_from > date_to)
+    ):
+        return HttpResponseBadRequest("Provide a valid date range.")
+
+    loans = Loan.objects.select_related(
+        "request__user",
+        "request",
+        "issued_by",
+    ).prefetch_related(
+        "request__items__catalog_item__category",
+        "request__items__allocations__unit",
+    ).order_by("issued_at", "id")
+    if date_from:
+        loans = loans.filter(issued_at__date__gte=date_from)
+    if date_to:
+        loans = loans.filter(issued_at__date__lte=date_to)
+
+    response = HttpResponse(content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = 'attachment; filename="equipment-usage-report.csv"'
+    writer = csv.writer(response)
+    writer.writerow(
+        [
+            "Loan ID",
+            "Issued At",
+            "Borrower",
+            "Issued By",
+            "Due Date",
+            "Request Status",
+            "Purpose",
+            "Category",
+            "Catalog Item",
+            "Asset Code",
+        ]
+    )
+
+    def csv_value(value):
+        if isinstance(value, str) and value.lstrip().startswith(("=", "+", "-", "@")):
+            return f"'{value}"
+        return value
+
+    for loan in loans:
+        for request_item in loan.request.items.all():
+            for allocation in request_item.allocations.all():
+                writer.writerow(
+                    [
+                        loan.pk,
+                        timezone.localtime(loan.issued_at).isoformat(),
+                        csv_value(loan.request.user.get_username()),
+                        csv_value(loan.issued_by.get_username()),
+                        loan.request.return_date.isoformat(),
+                        loan.request.status,
+                        csv_value(loan.request.purpose),
+                        csv_value(request_item.catalog_item.category.name),
+                        csv_value(request_item.catalog_item.name),
+                        csv_value(allocation.unit.asset_code),
+                    ]
+                )
+
+    AuditLog.objects.create(
+        actor=request.user,
+        action="REPORT_EXPORTED",
+        details=(
+            "Exported equipment usage report"
+            f"{f' from {date_from.isoformat()}' if date_from else ''}"
+            f"{f' through {date_to.isoformat()}' if date_to else ''}."
+        ),
+    )
+    return response
 
 
 @admin_required
@@ -685,6 +826,15 @@ def request_approve(request, request_id):
                 messages.error(
                     request,
                     "This request has no equipment items to allocate.",
+                )
+                return redirect("request_review")
+
+            max_quantity = SystemSetting.get_int("max_quantity", 5)
+            requested_quantity = sum(item.quantity for item in request_items)
+            if requested_quantity > max_quantity:
+                messages.error(
+                    request,
+                    f"This request contains {requested_quantity} units, above the configured maximum of {max_quantity}.",
                 )
                 return redirect("request_review")
 
