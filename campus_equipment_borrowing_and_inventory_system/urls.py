@@ -49,4 +49,10 @@ urlpatterns = [
 
     # A8 - Audit Logs and System Settings
     path("manage/audit-settings/", views.audit_settings_management, name="audit_settings_management"),
+
+    # U1 - Account and profile
+    path("portal/profile/", views.profile_view, name="profile_view"),
+
+    # U2 - Browse equipment
+    path("portal/catalog/", views.browse_catalog, name="browse_catalog"),
 ]

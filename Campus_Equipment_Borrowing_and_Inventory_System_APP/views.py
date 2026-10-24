@@ -29,6 +29,7 @@ from .models import (
     ReturnRecord,
     MaintenanceRecord
 )
+from .forms import UserProfileForm
 
 User = get_user_model()
 
@@ -1806,3 +1807,41 @@ def close_maintenance_record(request, record_id):
 
     messages.success(request, f"Maintenance record #{record_id} was closed.")
     return redirect("maintenance_management")
+
+@login_required
+def profile_view(request):
+
+    if not request.user.profile.is_active:
+        return redirect('logout')
+
+    if request.method == 'POST':
+        form = UserProfileForm(request.POST, instance=request.user.profile, user=request.user)
+        if form.is_valid():
+            request.user.first_name = form.cleaned_data['first_name']
+            request.user.last_name = form.cleaned_data['last_name']
+            request.user.save()
+            form.save()
+            messages.success(request, 'Profile updated successfully.')
+            return redirect('profile_view')
+    else:
+        form = UserProfileForm(instance=request.user.profile, user=request.user)
+
+    return render(request, 'portal/profile.html', {'form': form})
+
+@login_required
+def browse_catalog(request):
+
+    if not request.user.profile.is_active:
+        return redirect('logout')
+
+    if request.user.profile.role == UserProfile.ADMIN:
+        return redirect('/manage/')
+
+    items = CatalogItem.objects.filter(is_archived=False).annotate(
+        available_quantity=Count(
+            'units',
+            filter=Q(units__status='Available')
+        )
+    ).select_related('category')
+
+    return render(request, 'portal/catalog.html', {'items': items})
