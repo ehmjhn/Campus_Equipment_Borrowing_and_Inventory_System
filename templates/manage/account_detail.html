@@ -1,0 +1,144 @@
+{% extends "manage/layout.html" %}
+
+{% block page_title %}Account History | System Administration{% endblock %}
+
+{% block admin_content %}
+<div class="page-container accounts-page">
+    <header class="page-header">
+        <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+            <a class="breadcrumb-link" href="{% url 'admin_dashboard' %}">Dashboard</a>
+            <span class="breadcrumb-separator" aria-hidden="true">/</span>
+            <a class="breadcrumb-link" href="{% url 'account_management' %}">Accounts</a>
+            <span class="breadcrumb-separator" aria-hidden="true">/</span>
+            <span class="breadcrumb-current" aria-current="page">{{ account.username }}</span>
+        </nav>
+        <h2 class="page-title">{{ account.get_full_name|default:account.username }}</h2>
+        <p class="page-description">Account details and complete borrowing history.</p>
+    </header>
+
+    <section class="content-card mb-4" aria-labelledby="account-summary-heading">
+        <header class="card-header">
+            <h3 class="card-title" id="account-summary-heading">Account Summary</h3>
+        </header>
+        <div class="card-body">
+            <div class="data-grid data-grid--3-col">
+                <div class="data-group">
+                    <strong class="data-label">Username</strong>
+                    <p class="data-value">{{ account.username }}</p>
+                </div>
+                <div class="data-group">
+                    <strong class="data-label">Full Name</strong>
+                    <p class="data-value">{{ account.get_full_name|default:"—" }}</p>
+                </div>
+                <div class="data-group">
+                    <strong class="data-label">Email</strong>
+                    <p class="data-value">{{ account.email|default:"—" }}</p>
+                </div>
+                <div class="data-group">
+                    <strong class="data-label">Role</strong>
+                    <p class="data-value">{{ profile.get_role_display }}</p>
+                </div>
+                <div class="data-group">
+                    <strong class="data-label">Status</strong>
+                    <p class="data-value">
+                        <span class="badge badge--{% if is_active %}success{% else %}danger{% endif %}">
+                            {% if is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </p>
+                </div>
+                <div class="data-group">
+                    <strong class="data-label">Contact Number</strong>
+                    <p class="data-value">{{ profile.contact_number|default:"—" }}</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="content-card" aria-labelledby="request-history-heading">
+        <header class="card-header">
+            <h3 class="card-title" id="request-history-heading">Borrowing Request History</h3>
+            <p class="card-description">
+                {{ page_obj.paginator.count }} request(s) submitted by this account.
+            </p>
+        </header>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Request</th>
+                        <th scope="col">Requested</th>
+                        <th scope="col">Due Date</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Purpose</th>
+                        <th scope="col">Requested Items</th>
+                        <th scope="col">Allocated Units</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in history_rows %}
+                        <tr>
+                            <td data-label="Request"><strong>#{{ row.request.pk }}</strong></td>
+                            <td data-label="Requested">{{ row.request.requested_at|date:"M d, Y" }}</td>
+                            <td data-label="Due Date">{{ row.request.return_date|date:"M d, Y" }}</td>
+                            <td data-label="Status">
+                                <span class="badge badge--{{ row.request.status|slugify }}">{{ row.request.status }}</span>
+                            </td>
+                            <td data-label="Purpose">{{ row.request.purpose|truncatechars:80 }}</td>
+                            <td data-label="Requested Items">
+                                <ul class="detail-list">
+                                    {% for request_item in row.items %}
+                                        <li>{{ request_item.quantity }} &times; {{ request_item.catalog_item.name }}</li>
+                                    {% empty %}
+                                        <li class="text-muted">No items</li>
+                                    {% endfor %}
+                                </ul>
+                            </td>
+                            <td data-label="Allocated Units">
+                                <ul class="detail-list">
+                                    {% for allocation in row.allocations %}
+                                        <li>
+                                            {{ allocation.unit.asset_code }}
+                                            {% if allocation.released_at %}
+                                                <span class="badge badge--outline">Released &middot; {{ allocation.get_release_reason_display }}</span>
+                                            {% endif %}
+                                        </li>
+                                    {% empty %}
+                                        <li class="text-muted">Not allocated</li>
+                                    {% endfor %}
+                                </ul>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted">This account has no borrowing requests.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page_obj.paginator.num_pages > 1 %}
+            <nav class="pagination-nav mt-4 text-center" aria-label="Account history pages">
+                {% if page_obj.has_previous %}
+                    <a class="btn btn--outline" href="?page=1">First</a>
+                    <a class="btn btn--outline" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                {% else %}
+                    <button class="btn btn--outline" disabled>First</button>
+                    <button class="btn btn--outline" disabled>Previous</button>
+                {% endif %}
+
+                <span class="pagination-info mx-3">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+                {% if page_obj.has_next %}
+                    <a class="btn btn--outline" href="?page={{ page_obj.next_page_number }}">Next</a>
+                    <a class="btn btn--outline" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+                {% else %}
+                    <button class="btn btn--outline" disabled>Next</button>
+                    <button class="btn btn--outline" disabled>Last</button>
+                {% endif %}
+            </nav>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

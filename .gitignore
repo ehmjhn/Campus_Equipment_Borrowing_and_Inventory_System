@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Local database (recreate with `python manage.py migrate` + `python manage.py seed`)
+db.sqlite3
+db.sqlite3-journal
+
+# IDE / OS noise
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local environment overrides and secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Packaging / test artifacts
+*.log
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/

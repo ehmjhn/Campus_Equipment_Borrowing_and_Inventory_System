@@ -64,7 +64,8 @@
                         {% endif %}
                     </div>
                 </div>
-                <div>
+                <div class="d-flex-gap">
+                    <a class="btn btn--outline" href="{% url 'overdue_report' %}">Overdue Report</a>
                     <a class="btn btn--success" href="{% url 'dashboard_report_csv' %}?date_from={{ date_from }}&amp;date_to={{ date_to }}">
                         Download CSV Report
                     </a>
@@ -80,7 +81,8 @@
                 </header>
                 <div class="card-body">
                     {% if monthly_issued %}
-                        <ol class="chart-list list-unstyled mb-0" style="padding-left: 0;">
+                        <ol class="chart-list list-unstyled mb-0" style="padding-left: 0;" role="img"
+                            aria-label="Monthly issued loans bar chart: {% for row in monthly_issued %}{{ row.month|date:'F Y' }} {{ row.count }} loans{% if not forloop.last %}, {% endif %}{% endfor %}">
                             {% for row in monthly_issued %}
                                 <li style="margin-bottom: 1.25rem;">
                                     <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.35rem;">
@@ -106,7 +108,8 @@
                 </header>
                 <div class="card-body">
                     {% if category_usage %}
-                        <ol class="chart-list list-unstyled mb-0" style="padding-left: 0;">
+                        <ol class="chart-list list-unstyled mb-0" style="padding-left: 0;" role="img"
+                            aria-label="Category usage bar chart: {% for row in category_usage %}{{ row.request_item__catalog_item__category__name }} {{ row.count }} units{% if not forloop.last %}, {% endif %}{% endfor %}">
                             {% for row in category_usage %}
                                 <li style="margin-bottom: 1.25rem;">
                                     <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.35rem;">
@@ -126,6 +129,58 @@
                     {% endif %}
                 </div>
             </article>
+        </div>
+    </section>
+
+    <section class="content-section" aria-labelledby="loan-report-heading">
+        <header class="section-header">
+            <h3 class="section-title" id="loan-report-heading">Loan Report</h3>
+            <p class="section-description">
+                Most recent 50 loans that match the date range above.
+            </p>
+        </header>
+
+        <div class="content-card">
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Loan</th>
+                            <th scope="col">Borrower</th>
+                            <th scope="col">Issued</th>
+                            <th scope="col">Due Date</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Issued Units</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for loan in loan_report_rows %}
+                            <tr>
+                                <td data-label="Loan"><strong>#{{ loan.pk }}</strong></td>
+                                <td data-label="Borrower">{{ loan.request.user.get_full_name|default:loan.request.user.username }}</td>
+                                <td data-label="Issued">{{ loan.issued_at|date:"M d, Y" }}</td>
+                                <td data-label="Due Date">{{ loan.request.return_date|date:"M d, Y" }}</td>
+                                <td data-label="Status">
+                                    <span class="badge badge--{{ loan.request.status|slugify }}">{{ loan.request.status }}</span>
+                                </td>
+                                <td data-label="Issued Units">
+                                    {% for request_item in loan.request.items.all %}
+                                        {% for allocation in request_item.allocations.all %}
+                                            <span class="badge badge--outline">{{ allocation.unit.asset_code }}</span>
+                                        {% endfor %}
+                                    {% empty %}
+                                        <span class="text-muted">None</span>
+                                    {% endfor %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">No loans match this date range.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </section>
 </div>

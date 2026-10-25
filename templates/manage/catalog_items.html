@@ -130,7 +130,7 @@
                                     </details>
                                     <form class="inline-form ml-2" method="post" action="{% url 'catalog_item_archive' item.pk %}">
                                         {% csrf_token %}
-                                        <button class="btn btn--sm btn--danger" type="submit">Archive</button>
+                                        <button class="btn btn--sm btn--danger" type="submit" onclick="return confirm('Archive this catalog item? Existing history is preserved.');">Archive</button>
                                     </form>
                                 {% else %}
                                     <span class="text-muted">Read-only</span>

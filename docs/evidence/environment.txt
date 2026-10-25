@@ -1,0 +1,1 @@
+Python: Python 3.12.10 Django: 6.1.2 OS: Microsoft Windows NT 10.0.26300.0 Processor: 12th Gen Intel(R) Core(TM) i5-12450H Cores: 8 RAM_GB: 15.7

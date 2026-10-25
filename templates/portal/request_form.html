@@ -1,0 +1,84 @@
+{% extends "portal/layout.html" %}
+
+{% block page_title %}New Borrowing Request{% endblock %}
+
+{% block portal_content %}
+<div class="page-container">
+    <header class="page-header">
+        <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+            <a class="breadcrumb-link" href="{% url 'browse_catalog' %}">Browse Equipment</a>
+            <span class="breadcrumb-separator" aria-hidden="true">/</span>
+            <span class="breadcrumb-current" aria-current="page">New Request</span>
+        </nav>
+        <h2 class="page-title">New Borrowing Request</h2>
+        <p class="page-description">
+            Request one to three different items. Requests are reviewed by an administrator before any unit is reserved.
+        </p>
+    </header>
+
+    <section class="content-card" aria-labelledby="request-form-heading">
+        <header class="card-header">
+            <h3 class="card-title" id="request-form-heading">Request Details</h3>
+            <p class="card-description">
+                Maximum {{ max_quantity }} unit(s) per item. The return date must be between
+                tomorrow and {{ max_return_date|date:"Y-m-d" }}
+                ({{ max_loan_duration_days }} days from today).
+            </p>
+        </header>
+
+        <form class="standard-form" method="post" action="{% url 'borrow_request_create' %}">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert--error" role="alert">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label class="form-label" for="{{ form.purpose.id_for_label }}">{{ form.purpose.label }}</label>
+                {{ form.purpose }}
+                {% if form.purpose.errors %}
+                    <p class="form-error" role="alert">{{ form.purpose.errors|join:", " }}</p>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="{{ form.return_date.id_for_label }}">{{ form.return_date.label }}</label>
+                {{ form.return_date }}
+                {% if form.return_date.errors %}
+                    <p class="form-error" role="alert">{{ form.return_date.errors|join:", " }}</p>
+                {% endif %}
+            </div>
+
+            <fieldset class="form-fieldset">
+                <legend class="form-legend">Equipment to borrow</legend>
+
+                {% for item_field, quantity_field in item_rows %}
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="{{ item_field.id_for_label }}">{{ item_field.label }}</label>
+                            {{ item_field }}
+                            {% if item_field.errors %}
+                                <p class="form-error" role="alert">{{ item_field.errors|join:", " }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="{{ quantity_field.id_for_label }}">{{ quantity_field.label }}</label>
+                            {{ quantity_field }}
+                            {% if quantity_field.errors %}
+                                <p class="form-error" role="alert">{{ quantity_field.errors|join:", " }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </fieldset>
+
+            <div class="form-actions">
+                <button class="btn btn--primary" type="submit">Submit Request</button>
+                <a class="btn btn--link" href="{% url 'request_history' %}">View my requests</a>
+            </div>
+        </form>
+    </section>
+</div>
+{% endblock %}

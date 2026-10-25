@@ -2,7 +2,7 @@ import csv
 from datetime import timedelta
 from functools import wraps
 
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, login as auth_login
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import transaction, IntegrityError
@@ -29,7 +29,7 @@ from .models import (
     ReturnRecord,
     MaintenanceRecord
 )
-from .forms import BorrowRequestForm, UserProfileForm
+from .forms import BorrowRequestForm, RegisterForm, UserProfileForm
 
 User = get_user_model()
 
@@ -84,6 +84,44 @@ def basic_user_required(view_func):
     return _wrapped_view
 
 
+def role_redirect(request):
+    """Send each signed-in user to the area that matches their role."""
+    if not request.user.is_authenticated:
+        return redirect("login")
+
+    profile = getattr(request.user, "profile", None)
+
+    if (
+        profile is not None
+        and profile.is_active
+        and profile.role == UserProfile.ADMIN
+    ):
+        return redirect("admin_dashboard")
+
+    return redirect("portal_home")
+
+
+def register(request):
+    """Public registration for the basic-user role only."""
+    if request.user.is_authenticated:
+        return redirect("home")
+
+    if request.method == "POST":
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            auth_login(request, user)
+            messages.success(
+                request,
+                "Account created. Browse the catalog to submit a request.",
+            )
+            return redirect("portal_home")
+    else:
+        form = RegisterForm()
+
+    return render(request, "registration/register.html", {"form": form})
+
+
 @admin_required
 def admin_dashboard(request):
     date_from_text = request.GET.get("date_from", "").strip()
@@ -102,7 +140,9 @@ def admin_dashboard(request):
         date_to = None
 
     available_units_count = EquipmentUnit.objects.filter(
-        status=EquipmentUnit.AVAILABLE
+        status=EquipmentUnit.AVAILABLE,
+        catalog_item__is_archived=False,
+        catalog_item__category__is_archived=False,
     ).count()
 
     pending_requests_count = BorrowRequest.objects.filter(
@@ -124,7 +164,13 @@ def admin_dashboard(request):
         request__return_date__lt=timezone.now().date(),
     ).count()
 
-    loans = Loan.objects.select_related("request", "request__user", "issued_by")
+    loans = (
+        Loan.objects.select_related("request", "request__user", "issued_by")
+        .prefetch_related(
+            "request__items__catalog_item",
+            "request__items__allocations__unit",
+        )
+    )
     allocations = UnitAllocation.objects.select_related(
         "request_item__request__loan",
         "request_item__catalog_item__category",
@@ -171,6 +217,9 @@ def admin_dashboard(request):
         "category_usage": category_usage,
         "max_monthly_issued": max_monthly_issued,
         "max_category_usage": max_category_usage,
+        "loan_report_rows": list(
+            loans.order_by("-issued_at", "-id")[:50]
+        ),
         "date_from": date_from.isoformat() if date_from else "",
         "date_to": date_to.isoformat() if date_to else "",
     }
@@ -257,6 +306,158 @@ def dashboard_report_csv(request):
     return response
 
 
+def _csv_safe(value):
+    """Prevent spreadsheet formula injection in exported cells."""
+    if isinstance(value, str) and value.lstrip().startswith(("=", "+", "-", "@")):
+        return f"'{value}"
+    return value
+
+
+def _overdue_loan_rows(date_from=None, date_to=None):
+    """Return active loans that still have units out past their due date."""
+    today = timezone.localdate()
+    loans = (
+        Loan.objects
+        .filter(
+            request__status__in=[
+                BorrowRequest.ISSUED,
+                BorrowRequest.PARTIALLY_RETURNED,
+            ],
+            request__return_date__lt=today,
+        )
+        .select_related("request", "request__user", "issued_by")
+        .prefetch_related(
+            "request__items__catalog_item",
+            "request__items__allocations__unit",
+            "returns__unit",
+        )
+        .order_by("request__return_date", "id")
+    )
+
+    if date_from:
+        loans = loans.filter(issued_at__date__gte=date_from)
+    if date_to:
+        loans = loans.filter(issued_at__date__lte=date_to)
+
+    rows = []
+    for loan in loans:
+        returned_unit_ids = {record.unit_id for record in loan.returns.all()}
+        outstanding_allocations = [
+            allocation
+            for request_item in loan.request.items.all()
+            for allocation in request_item.allocations.all()
+            if allocation.unit_id not in returned_unit_ids
+        ]
+
+        if not outstanding_allocations:
+            continue
+
+        rows.append({
+            "loan": loan,
+            "outstanding_allocations": outstanding_allocations,
+            "outstanding_count": len(outstanding_allocations),
+            "overdue_days": (today - loan.request.return_date).days,
+        })
+
+    return rows
+
+
+@admin_required
+def overdue_report(request):
+    date_from_text = request.GET.get("date_from", "").strip()
+    date_to_text = request.GET.get("date_to", "").strip()
+    date_from = parse_date(date_from_text) if date_from_text else None
+    date_to = parse_date(date_to_text) if date_to_text else None
+
+    filter_is_valid = (
+        (not date_from_text or date_from is not None)
+        and (not date_to_text or date_to is not None)
+        and not (date_from and date_to and date_from > date_to)
+    )
+    if not filter_is_valid:
+        messages.error(
+            request,
+            "Enter a valid date range with the start date on or before the end date.",
+        )
+        date_from = None
+        date_to = None
+
+    rows = _overdue_loan_rows(date_from, date_to)
+
+    return render(
+        request,
+        "manage/overdue_report.html",
+        {
+            "rows": rows,
+            "date_from": date_from.isoformat() if date_from else "",
+            "date_to": date_to.isoformat() if date_to else "",
+        },
+    )
+
+
+@admin_required
+def overdue_report_csv(request):
+    date_from_text = request.GET.get("date_from", "").strip()
+    date_to_text = request.GET.get("date_to", "").strip()
+    date_from = parse_date(date_from_text) if date_from_text else None
+    date_to = parse_date(date_to_text) if date_to_text else None
+    if (
+        (date_from_text and date_from is None)
+        or (date_to_text and date_to is None)
+        or (date_from and date_to and date_from > date_to)
+    ):
+        return HttpResponseBadRequest("Provide a valid date range.")
+
+    rows = _overdue_loan_rows(date_from, date_to)
+
+    response = HttpResponse(content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = 'attachment; filename="overdue-report.csv"'
+    writer = csv.writer(response)
+    writer.writerow(
+        [
+            "Loan ID",
+            "Issued At",
+            "Borrower",
+            "Due Date",
+            "Request Status",
+            "Overdue Days",
+            "Outstanding Units",
+            "Asset Codes",
+        ]
+    )
+
+    for row in rows:
+        loan = row["loan"]
+        writer.writerow(
+            [
+                loan.pk,
+                timezone.localtime(loan.issued_at).isoformat(),
+                _csv_safe(loan.request.user.get_username()),
+                loan.request.return_date.isoformat(),
+                loan.request.status,
+                row["overdue_days"],
+                row["outstanding_count"],
+                _csv_safe(
+                    ", ".join(
+                        allocation.unit.asset_code
+                        for allocation in row["outstanding_allocations"]
+                    )
+                ),
+            ]
+        )
+
+    AuditLog.objects.create(
+        actor=request.user,
+        action="REPORT_EXPORTED",
+        details=(
+            "Exported overdue loans report"
+            f"{f' from {date_from.isoformat()}' if date_from else ''}"
+            f"{f' through {date_to.isoformat()}' if date_to else ''}."
+        ),
+    )
+    return response
+
+
 @admin_required
 def account_management(request):
     search_query = request.GET.get("q", "").strip()
@@ -294,6 +495,52 @@ def account_management(request):
 
 
 @admin_required
+def account_detail(request, user_id):
+    account = get_object_or_404(User, pk=user_id)
+    profile, _ = UserProfile.objects.get_or_create(user=account)
+
+    requests_queryset = (
+        BorrowRequest.objects.filter(user=account)
+        .select_related("loan")
+        .prefetch_related(
+            "items__catalog_item__category",
+            "items__allocations__unit",
+            "loan__returns__unit",
+        )
+        .order_by("-requested_at", "-id")
+    )
+    page_obj = Paginator(requests_queryset, 10).get_page(
+        request.GET.get("page")
+    )
+
+    history_rows = []
+    for borrow_request in page_obj.object_list:
+        allocations = [
+            allocation
+            for request_item in borrow_request.items.all()
+            for allocation in request_item.allocations.all()
+        ]
+        history_rows.append({
+            "request": borrow_request,
+            "items": borrow_request.items.all(),
+            "allocations": allocations,
+            "loan": getattr(borrow_request, "loan", None),
+        })
+
+    return render(
+        request,
+        "manage/account_detail.html",
+        {
+            "account": account,
+            "profile": profile,
+            "is_active": account.is_active and profile.is_active,
+            "page_obj": page_obj,
+            "history_rows": history_rows,
+        },
+    )
+
+
+@admin_required
 @require_POST
 def toggle_account_status(request, user_id):
     with transaction.atomic():
@@ -305,6 +552,10 @@ def toggle_account_status(request, user_id):
         profile, _ = UserProfile.objects.get_or_create(user=account)
 
         if account.pk == request.user.pk:
+            messages.error(
+                request,
+                "You cannot change the activation status of your own account.",
+            )
             return redirect("account_management")
 
         currently_active = account.is_active and profile.is_active
@@ -318,6 +569,10 @@ def toggle_account_status(request, user_id):
                 ).exclude(user_id=account.pk).count()
 
                 if active_admin_count == 0:
+                    messages.error(
+                        request,
+                        "At least one active administrator account must remain.",
+                    )
                     return redirect("account_management")
 
             account.is_active = False
@@ -507,8 +762,94 @@ def catalog_item_management(request):
         },
     )
 
+def _inventory_status_summary():
+    """Per catalog item unit counts for the reconciliation panel."""
+    statuses = [value for value, _ in EquipmentUnit.STATUS_CHOICES]
+    counts = {}
+
+    for row in (
+        EquipmentUnit.objects
+        .values("catalog_item_id", "status")
+        .annotate(total=Count("id"))
+    ):
+        counts.setdefault(row["catalog_item_id"], {})[row["status"]] = row["total"]
+
+    rows = []
+    items = (
+        CatalogItem.objects
+        .select_related("category")
+        .order_by("category__name", "name")
+    )
+    for item in items:
+        item_counts = counts.get(item.pk, {})
+        rows.append(
+            {
+                "item": item,
+                "total": sum(item_counts.values()),
+                "statuses": [
+                    {"label": status, "count": item_counts.get(status, 0)}
+                    for status in statuses
+                ],
+            }
+        )
+
+    return rows
+
+
+def _inventory_anomalies():
+    """Detect units whose status disagrees with allocation/loan records."""
+    allocated_unit_ids = UnitAllocation.objects.filter(
+        released_at__isnull=True,
+    ).values_list("unit_id", flat=True)
+
+    orphaned_reserved = (
+        EquipmentUnit.objects
+        .filter(status=EquipmentUnit.RESERVED)
+        .exclude(pk__in=allocated_unit_ids)
+        .select_related("catalog_item")
+    )
+
+    stale_allocations = (
+        UnitAllocation.objects
+        .filter(
+            released_at__isnull=True,
+            request_item__request__status__in=[
+                BorrowRequest.PENDING,
+                BorrowRequest.APPROVED,
+            ]
+        )
+        .exclude(unit__status=EquipmentUnit.RESERVED)
+        .select_related("unit", "request_item__request")
+    )
+
+    issued_without_active_loan = (
+        EquipmentUnit.objects
+        .filter(status=EquipmentUnit.ISSUED)
+        .exclude(
+            pk__in=UnitAllocation.objects.filter(
+                released_at__isnull=True,
+                request_item__request__status__in=[
+                    BorrowRequest.ISSUED,
+                    BorrowRequest.PARTIALLY_RETURNED,
+                ]
+            ).values("unit_id")
+        )
+        .select_related("catalog_item")
+    )
+
+    return {
+        "orphaned_reserved": list(orphaned_reserved),
+        "stale_allocations": list(stale_allocations),
+        "issued_without_active_loan": list(issued_without_active_loan),
+    }
+
+
 @admin_required
 def physical_units_management(request):
+    category_filter = request.GET.get("category", "").strip()
+    item_filter = request.GET.get("item", "").strip()
+    status_filter = request.GET.get("status", "").strip()
+
     active_catalog_items = (
         CatalogItem.objects
         .filter(
@@ -531,9 +872,42 @@ def physical_units_management(request):
         )
     )
 
+    if category_filter.isdigit():
+        equipment_units = equipment_units.filter(
+            catalog_item__category_id=int(category_filter)
+        )
+    else:
+        category_filter = ""
+
+    if item_filter.isdigit():
+        equipment_units = equipment_units.filter(
+            catalog_item_id=int(item_filter)
+        )
+    else:
+        item_filter = ""
+
+    valid_statuses = {value for value, _ in EquipmentUnit.STATUS_CHOICES}
+    if status_filter in valid_statuses:
+        equipment_units = equipment_units.filter(status=status_filter)
+    else:
+        status_filter = ""
+
     context = {
         "active_catalog_items": active_catalog_items,
         "equipment_units": equipment_units,
+        "filter_categories": Category.objects.order_by("name"),
+        "filter_items": CatalogItem.objects.select_related("category").order_by(
+            "category__name",
+            "name",
+        ),
+        "category_filter": category_filter,
+        "item_filter": item_filter,
+        "status_filter": status_filter,
+        "reconciliation_rows": _inventory_status_summary(),
+        "anomalies": _inventory_anomalies(),
+        "unit_statuses": [
+            label for _, label in EquipmentUnit.STATUS_CHOICES
+        ],
     }
 
     return render(
@@ -671,14 +1045,31 @@ def catalog_item_archive(request, item_id):
         )
         return redirect("catalog_item_management")
 
-    item.is_archived = True
-    item.save(update_fields=["is_archived"])
+    has_open_requests = BorrowRequest.objects.filter(
+        items__catalog_item=item,
+        status__in=[
+            BorrowRequest.PENDING,
+            BorrowRequest.APPROVED,
+        ],
+    ).exists()
 
-    AuditLog.objects.create(
-        actor=request.user,
-        action="CATALOG_ITEM_ARCHIVED",
-        details=f"Archived catalog item: {item.name} (ID: {item.pk}).",
-    )
+    if has_open_requests:
+        messages.error(
+            request,
+            "This item is referenced by pending or approved requests. "
+            "Resolve those requests before archiving it.",
+        )
+        return redirect("catalog_item_management")
+
+    with transaction.atomic():
+        item.is_archived = True
+        item.save(update_fields=["is_archived"])
+
+        AuditLog.objects.create(
+            actor=request.user,
+            action="CATALOG_ITEM_ARCHIVED",
+            details=f"Archived catalog item: {item.name} (ID: {item.pk}).",
+        )
 
     messages.success(request, "Catalog item archived successfully.")
     return redirect("catalog_item_management")
@@ -759,9 +1150,228 @@ def equipment_unit_create(request):
     return redirect("catalog_item_management")
 
 @admin_required
+@require_POST
+def equipment_unit_update(request, unit_id):
+    """Update the mutable details of a physical unit.
+
+    Asset codes are immutable on purpose: they are referenced by loans,
+    returns, and audit entries, so rewriting them would break the history the
+    system exists to preserve.
+    """
+    condition = request.POST.get("condition", "").strip()
+    acquisition_date_text = request.POST.get("acquisition_date", "").strip()
+    acquisition_date = (
+        parse_date(acquisition_date_text) if acquisition_date_text else None
+    )
+
+    if not condition or acquisition_date is None:
+        messages.error(
+            request,
+            "A condition description and a valid acquisition date are required.",
+        )
+        return redirect("physical_units_management")
+
+    with transaction.atomic():
+        unit = get_object_or_404(
+            EquipmentUnit.objects.select_for_update(),
+            pk=unit_id,
+        )
+
+        if unit.status == EquipmentUnit.RETIRED:
+            messages.error(
+                request,
+                f"Asset {unit.asset_code} is retired. Restore it before editing.",
+            )
+            return redirect("physical_units_management")
+
+        if unit.status in [EquipmentUnit.RESERVED, EquipmentUnit.ISSUED]:
+            messages.error(
+                request,
+                (
+                    f"Asset {unit.asset_code} is currently "
+                    f"{unit.status.lower()}. Resolve the transaction before "
+                    "editing its details."
+                ),
+            )
+            return redirect("physical_units_management")
+
+        old_condition = unit.condition
+        old_acquisition_date = unit.acquisition_date
+
+        unit.condition = condition
+        unit.acquisition_date = acquisition_date
+        unit.save(update_fields=["condition", "acquisition_date"])
+
+        AuditLog.objects.create(
+            actor=request.user,
+            action="EQUIPMENT_UNIT_UPDATED",
+            details=(
+                f"Updated equipment unit {unit.asset_code} (Unit ID: {unit.pk}). "
+                f"Condition: '{old_condition}' to '{unit.condition}'. "
+                f"Acquisition date: {old_acquisition_date.isoformat()} to "
+                f"{unit.acquisition_date.isoformat()}."
+            ),
+        )
+
+    messages.success(
+        request,
+        f"Equipment unit '{unit.asset_code}' updated successfully.",
+    )
+    return redirect("physical_units_management")
+
+
+@admin_required
+@require_POST
+def equipment_unit_retire(request, unit_id):
+    """Retire a physical unit instead of deleting it (preserves history)."""
+    with transaction.atomic():
+        unit = get_object_or_404(
+            EquipmentUnit.objects.select_for_update(),
+            pk=unit_id,
+        )
+
+        if unit.status == EquipmentUnit.RETIRED:
+            messages.info(
+                request,
+                f"Asset {unit.asset_code} is already retired.",
+            )
+            return redirect("physical_units_management")
+
+        if unit.status in [EquipmentUnit.RESERVED, EquipmentUnit.ISSUED]:
+            messages.error(
+                request,
+                (
+                    f"Asset {unit.asset_code} cannot be retired while it is "
+                    f"{unit.status.lower()}. Resolve the transaction first."
+                ),
+            )
+            return redirect("physical_units_management")
+
+        previous_status = unit.status
+        unit.status = EquipmentUnit.RETIRED
+        unit.save(update_fields=["status"])
+
+        AuditLog.objects.create(
+            actor=request.user,
+            action="EQUIPMENT_UNIT_RETIRED",
+            details=(
+                f"Retired equipment unit {unit.asset_code} (Unit ID: {unit.pk}) "
+                f"from status '{previous_status}'."
+            ),
+        )
+
+    messages.success(request, f"Asset {unit.asset_code} retired.")
+    return redirect("physical_units_management")
+
+
+@admin_required
+@require_POST
+def equipment_unit_restore(request, unit_id):
+    """Return a retired unit to the available pool."""
+    with transaction.atomic():
+        unit = get_object_or_404(
+            EquipmentUnit.objects.select_for_update(),
+            pk=unit_id,
+        )
+
+        if unit.status != EquipmentUnit.RETIRED:
+            messages.error(
+                request,
+                f"Asset {unit.asset_code} is not retired and cannot be restored.",
+            )
+            return redirect("physical_units_management")
+
+        unit.status = EquipmentUnit.AVAILABLE
+        unit.save(update_fields=["status"])
+
+        AuditLog.objects.create(
+            actor=request.user,
+            action="EQUIPMENT_UNIT_RESTORED",
+            details=(
+                f"Restored retired equipment unit {unit.asset_code} "
+                f"(Unit ID: {unit.pk}) to 'Available'."
+            ),
+        )
+
+    messages.success(
+        request,
+        f"Asset {unit.asset_code} restored to the available pool.",
+    )
+    return redirect("physical_units_management")
+
+
+@admin_required
+@require_POST
+def reconcile_inventory(request):
+    """Repair reserved units that no longer have an allocation.
+
+    A unit can only be reserved through a `UnitAllocation`. When an allocation
+    disappears without releasing the unit (for example, manual database edits),
+    the unit is stuck as reserved and can never be borrowed again. This action
+    releases exactly those orphaned units and records the outcome.
+    """
+    with transaction.atomic():
+        allocated_unit_ids = UnitAllocation.objects.filter(
+            released_at__isnull=True,
+        ).values_list("unit_id", flat=True)
+        orphaned_units = list(
+            EquipmentUnit.objects.select_for_update().filter(
+                status=EquipmentUnit.RESERVED,
+            ).exclude(pk__in=allocated_unit_ids)
+        )
+
+        for unit in orphaned_units:
+            unit.status = EquipmentUnit.AVAILABLE
+
+        if orphaned_units:
+            EquipmentUnit.objects.bulk_update(orphaned_units, ["status"])
+
+        asset_codes = ", ".join(unit.asset_code for unit in orphaned_units)
+
+        AuditLog.objects.create(
+            actor=request.user,
+            action="INVENTORY_RECONCILED",
+            details=(
+                f"Released {len(orphaned_units)} orphaned reserved unit(s). "
+                f"Asset codes: {asset_codes or 'none'}."
+            ),
+        )
+
+    if orphaned_units:
+        messages.success(
+            request,
+            f"Reconciled {len(orphaned_units)} orphaned reserved unit(s).",
+        )
+    else:
+        messages.info(
+            request,
+            "Inventory is consistent; no orphaned reserved units were found.",
+        )
+
+    return redirect("physical_units_management")
+
+
+@admin_required
 def request_review(request):
     search_query = request.GET.get("q", "").strip()
     status_filter = request.GET.get("status", "").strip()
+    date_from_text = request.GET.get("date_from", "").strip()
+    date_to_text = request.GET.get("date_to", "").strip()
+    date_from = parse_date(date_from_text) if date_from_text else None
+    date_to = parse_date(date_to_text) if date_to_text else None
+
+    filter_is_valid = (
+        (not date_from_text or date_from is not None)
+        and (not date_to_text or date_to is not None)
+        and not (date_from and date_to and date_from > date_to)
+    )
+    if not filter_is_valid:
+        messages.error(
+            request,
+            "Enter a valid request date range with the start date on or before the end date.",
+        )
+        date_from = None
+        date_to = None
 
     requests = (
         BorrowRequest.objects
@@ -794,14 +1404,39 @@ def request_review(request):
     else:
         status_filter = ""
 
+    if date_from:
+        requests = requests.filter(requested_at__date__gte=date_from)
+    if date_to:
+        requests = requests.filter(requested_at__date__lte=date_to)
+
     paginator = Paginator(requests, 10)
     page_obj = paginator.get_page(request.GET.get("page"))
+
+    # Show the reviewer how many units are free right now, so a request is
+    # never approved on stale stock information.
+    available_counts = {
+        row["catalog_item_id"]: row["available"]
+        for row in (
+            EquipmentUnit.objects
+            .filter(status=EquipmentUnit.AVAILABLE)
+            .values("catalog_item_id")
+            .annotate(available=Count("id"))
+        )
+    }
+    for borrow_request in page_obj.object_list:
+        for request_item in borrow_request.items.all():
+            request_item.available_now = available_counts.get(
+                request_item.catalog_item_id,
+                0,
+            )
 
     context = {
         "page_obj": page_obj,
         "requests": page_obj.object_list,
         "search_query": search_query,
         "status_filter": status_filter,
+        "date_from": date_from.isoformat() if date_from else "",
+        "date_to": date_to.isoformat() if date_to else "",
         "status_choices": BorrowRequest.STATUS_CHOICES,
     }
 
@@ -860,6 +1495,11 @@ def request_approve(request, request_id):
             allocation_plan = []
             selected_unit_ids = set()
             seen_catalog_item_ids = set()
+            active_allocated_unit_ids = set(
+                UnitAllocation.objects.filter(
+                    released_at__isnull=True,
+                ).values_list("unit_id", flat=True)
+            )
 
             for request_item in request_items:
                 if request_item.quantity < 1:
@@ -888,7 +1528,10 @@ def request_approve(request, request_id):
 
                 seen_catalog_item_ids.add(request_item.catalog_item_id)
 
-                if UnitAllocation.objects.filter(request_item=request_item).exists():
+                if UnitAllocation.objects.filter(
+                    request_item=request_item,
+                    released_at__isnull=True,
+                ).exists():
                     messages.error(
                         request,
                         (
@@ -904,6 +1547,7 @@ def request_approve(request, request_id):
                         catalog_item_id=request_item.catalog_item_id,
                         status=EquipmentUnit.AVAILABLE,
                     )
+                    .exclude(pk__in=active_allocated_unit_ids)
                     .exclude(pk__in=selected_unit_ids)
                     .order_by("asset_code")[:request_item.quantity]
                 )
@@ -1215,7 +1859,10 @@ def issue_approved_request(request, request_id):
                     return redirect("release_management")
 
                 allocated_ids = list(
-                    UnitAllocation.objects.filter(request_item=request_item)
+                    UnitAllocation.objects.filter(
+                        request_item=request_item,
+                        released_at__isnull=True,
+                    )
                     .order_by("unit_id")
                     .values_list("unit_id", flat=True)
                 )
@@ -1268,6 +1915,7 @@ def issue_approved_request(request, request_id):
 
                     other_approved_allocation = UnitAllocation.objects.filter(
                         unit_id=unit_id,
+                        released_at__isnull=True,
                         request_item__request__status=BorrowRequest.APPROVED,
                     ).exclude(request_item__request=borrow_request).exists()
 
@@ -1463,6 +2111,7 @@ def record_unit_return(request, loan_id, unit_id):
         allocated_to_loan = UnitAllocation.objects.filter(
             request_item__request=loan.request,
             unit=unit,
+            released_at__isnull=True,
         ).exists()
 
         if not allocated_to_loan:
@@ -1500,6 +2149,15 @@ def record_unit_return(request, loan_id, unit_id):
                 problem_description=f"Returned in {condition_status.lower()} condition. {condition_notes}".strip(),
                 handled_by=request.user,
             )
+
+        UnitAllocation.objects.filter(
+            request_item__request=loan.request,
+            unit=unit,
+            released_at__isnull=True,
+        ).update(
+            released_at=timezone.now(),
+            release_reason=UnitAllocation.RETURNED,
+        )
 
         allocated_ids = set(
             UnitAllocation.objects.filter(
@@ -1853,12 +2511,39 @@ def profile_view(request):
 
     return render(request, 'portal/profile.html', {'form': form})
 
+@login_required
+def portal_home(request):
+    """Landing page for the basic-user area, with a safe admin redirect."""
+    profile = getattr(request.user, "profile", None)
+    if (
+        profile is not None
+        and profile.is_active
+        and profile.role == UserProfile.ADMIN
+    ):
+        return redirect("admin_dashboard")
+
+    return browse_catalog(request)
+
+
 @basic_user_required
 def browse_catalog(request):
+    search_query = request.GET.get("q", "").strip()
+    items = _portal_catalog_items()
+
+    if search_query:
+        items = items.filter(
+            Q(name__icontains=search_query)
+            | Q(description__icontains=search_query)
+            | Q(category__name__icontains=search_query)
+        )
+
     return render(
         request,
         "portal/catalog.html",
-        {"items": _portal_catalog_items()},
+        {
+            "items": items,
+            "search_query": search_query,
+        },
     )
 
 
@@ -1870,7 +2555,16 @@ def _portal_catalog_items():
         available_quantity=Count(
             "units",
             filter=Q(units__status=EquipmentUnit.AVAILABLE),
-        )
+        ),
+        serviceable_quantity=Count(
+            "units",
+            filter=~Q(
+                units__status__in=[
+                    EquipmentUnit.RETIRED,
+                    EquipmentUnit.MAINTENANCE,
+                ]
+            ),
+        ),
     ).select_related("category").order_by("category__name", "name")
 
 
@@ -1924,7 +2618,15 @@ def borrow_request_create(request):
             )
             return redirect("request_history")
     else:
-        form = BorrowRequestForm(**form_kwargs)
+        initial = {}
+        initial_item_id = request.GET.get("item", "").strip()
+        if initial_item_id.isdigit() and catalog_items.filter(
+            pk=initial_item_id
+        ).exists():
+            initial["item_1"] = initial_item_id
+            initial["quantity_1"] = 1
+
+        form = BorrowRequestForm(**form_kwargs, initial=initial)
 
     today = timezone.localdate()
     form.fields["return_date"].widget.attrs.update(
@@ -2043,6 +2745,7 @@ def cancel_borrow_request(request, request_id):
         allocation_ids = list(
             UnitAllocation.objects.filter(
                 request_item__request=borrow_request,
+                released_at__isnull=True,
             ).values_list("unit_id", flat=True)
         )
         units = list(
@@ -2068,7 +2771,11 @@ def cancel_borrow_request(request, request_id):
         if allocation_ids:
             UnitAllocation.objects.filter(
                 request_item__request=borrow_request,
-            ).delete()
+                released_at__isnull=True,
+            ).update(
+                released_at=timezone.now(),
+                release_reason=UnitAllocation.CANCELLED,
+            )
 
         borrow_request.status = BorrowRequest.CANCELLED
         borrow_request.save(update_fields=["status"])

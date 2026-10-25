@@ -26,6 +26,14 @@
                     <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
             </select>
+            <div class="form-group mb-0">
+                <label class="form-label visually-hidden" for="request-date-from">Requested from</label>
+                <input class="form-input" type="date" id="request-date-from" name="date_from" value="{{ date_from }}" aria-label="Requested from date">
+            </div>
+            <div class="form-group mb-0">
+                <label class="form-label visually-hidden" for="request-date-to">Requested through</label>
+                <input class="form-input" type="date" id="request-date-to" name="date_to" value="{{ date_to }}" aria-label="Requested through date">
+            </div>
             <button class="btn btn--primary" type="submit">Filter</button>
             <a class="btn btn--outline" href="{% url 'request_review' %}">Reset</a>
         </form>
@@ -67,6 +75,7 @@
                                 <tr>
                                     <th scope="col">Catalog Item</th>
                                     <th scope="col">Qty</th>
+                                    <th scope="col">Available Now</th>
                                     <th scope="col">Allocated Asset Codes</th>
                                 </tr>
                             </thead>
@@ -76,6 +85,12 @@
                                         <td>{{ request_item.catalog_item.name }}</td>
                                         <td>{{ request_item.quantity }}</td>
                                         <td>
+                                            <strong>Available now:</strong> {{ request_item.available_now }}
+                                            {% if request_item.available_now < request_item.quantity %}
+                                                <span class="badge badge--danger">Insufficient</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
                                             {% for allocation in request_item.allocations.all %}
                                                 <span class="badge badge--outline">{{ allocation.unit.asset_code }}</span>
                                             {% empty %}
@@ -84,7 +99,7 @@
                                         </td>
                                     </tr>
                                 {% empty %}
-                                    <tr><td colspan="3" class="text-muted">No equipment items found.</td></tr>
+                                    <tr><td colspan="4" class="text-muted">No equipment items found.</td></tr>
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -98,7 +113,7 @@
                                     <label class="form-label visually-hidden" for="approve-remarks-{{ borrow_request.id }}">Approval Remarks</label>
                                     <textarea class="form-textarea" id="approve-remarks-{{ borrow_request.id }}" name="admin_remarks" rows="2" placeholder="Optional note for the borrower"></textarea>
                                 </div>
-                                <button class="btn btn--success w-100" type="submit">Approve &amp; Reserve</button>
+                                <button class="btn btn--success w-100" type="submit" onclick="return confirm('Approve this request and reserve the listed units?');">Approve &amp; Reserve</button>
                             </form>
 
                             <form class="rejection-form w-50" method="post" action="{% url 'request_reject' borrow_request.id %}">
@@ -117,5 +132,27 @@
             <div class="alert alert--info">No requests match your search or filter.</div>
         {% endfor %}
     </section>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+        <nav class="pagination-nav mt-4 text-center" aria-label="Request pages">
+            {% if page_obj.has_previous %}
+                <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&amp;status={{ status_filter|urlencode }}&amp;date_from={{ date_from }}&amp;date_to={{ date_to }}&amp;page=1">First</a>
+                <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&amp;status={{ status_filter|urlencode }}&amp;date_from={{ date_from }}&amp;date_to={{ date_to }}&amp;page={{ page_obj.previous_page_number }}">Previous</a>
+            {% else %}
+                <button class="btn btn--outline" disabled>First</button>
+                <button class="btn btn--outline" disabled>Previous</button>
+            {% endif %}
+
+            <span class="pagination-info mx-3">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+            {% if page_obj.has_next %}
+                <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&amp;status={{ status_filter|urlencode }}&amp;date_from={{ date_from }}&amp;date_to={{ date_to }}&amp;page={{ page_obj.next_page_number }}">Next</a>
+                <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&amp;status={{ status_filter|urlencode }}&amp;date_from={{ date_from }}&amp;date_to={{ date_to }}&amp;page={{ page_obj.paginator.num_pages }}">Last</a>
+            {% else %}
+                <button class="btn btn--outline" disabled>Next</button>
+                <button class="btn btn--outline" disabled>Last</button>
+            {% endif %}
+        </nav>
+    {% endif %}
 </div>
 {% endblock %}

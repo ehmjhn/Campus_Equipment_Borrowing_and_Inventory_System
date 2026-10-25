@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}{% block page_title %}User Portal{% endblock %} | Campus Equipment System{% endblock %}
+
+{% block main_layout %}
+<div class="admin-layout">
+    <header class="admin-header">
+        <div class="admin-header__brand">
+            <h1 class="admin-header__title">Campus Equipment Borrowing and Inventory System</h1>
+        </div>
+        <div class="admin-header__user">
+            <span class="admin-header__user-label">Borrower:</span>
+            <strong class="admin-header__username">{{ request.user.get_full_name|default:request.user.username }}</strong>
+            <form class="inline-form" method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button class="btn btn--link" type="submit">Sign out</button>
+            </form>
+        </div>
+    </header>
+
+    <div class="admin-body">
+        <aside class="admin-sidebar">
+            <nav class="admin-nav" aria-label="User portal navigation">
+                <ul class="admin-nav__list">
+                    <li class="admin-nav__item">
+                        <a class="admin-nav__link {% if request.resolver_match.url_name == 'browse_catalog' %}is-active{% endif %}" href="{% url 'browse_catalog' %}">Browse Catalog</a>
+                    </li>
+                    <li class="admin-nav__item">
+                        <a class="admin-nav__link {% if request.resolver_match.url_name == 'borrow_request_create' %}is-active{% endif %}" href="{% url 'borrow_request_create' %}">New Request</a>
+                    </li>
+                    <li class="admin-nav__item">
+                        <a class="admin-nav__link {% if request.resolver_match.url_name == 'request_history' %}is-active{% endif %}" href="{% url 'request_history' %}">My Requests</a>
+                    </li>
+                    <li class="admin-nav__item">
+                        <a class="admin-nav__link {% if request.resolver_match.url_name == 'profile_view' %}is-active{% endif %}" href="{% url 'profile_view' %}">My Profile</a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="admin-content" id="main-content">
+            {% if messages %}
+                <section class="notification-area" aria-label="Notifications" aria-live="polite">
+                    {% for message in messages %}
+                        <div class="alert alert--{{ message.tags|default:'info' }}" role="status">{{ message }}</div>
+                    {% endfor %}
+                </section>
+            {% endif %}
+
+            {% block portal_content %}{% endblock %}
+        </main>
+    </div>
+</div>
+{% endblock %}

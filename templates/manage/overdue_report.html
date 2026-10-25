@@ -1,0 +1,99 @@
+{% extends "manage/layout.html" %}
+
+{% block page_title %}Overdue Report{% endblock %}
+
+{% block admin_content %}
+<div class="page-container">
+    <header class="page-header">
+        <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+            <a class="breadcrumb-link" href="{% url 'admin_dashboard' %}">Dashboard</a>
+            <span class="breadcrumb-separator" aria-hidden="true">/</span>
+            <span class="breadcrumb-current" aria-current="page">Overdue Report</span>
+        </nav>
+        <h2 class="page-title">Overdue Report</h2>
+        <p class="page-description">
+            Active loans with units still outstanding after their due date.
+        </p>
+    </header>
+
+    <div class="card-toolbar mb-4">
+        <form class="filter-form d-flex-between align-items-end w-100" method="get" action="{% url 'overdue_report' %}">
+            <div class="d-flex-gap align-items-end">
+                <div class="form-group mb-0">
+                    <label class="form-label" for="overdue-date-from">Issued from</label>
+                    <input class="form-input" type="date" id="overdue-date-from" name="date_from" value="{{ date_from }}">
+                </div>
+                <div class="form-group mb-0">
+                    <label class="form-label" for="overdue-date-to">Issued through</label>
+                    <input class="form-input" type="date" id="overdue-date-to" name="date_to" value="{{ date_to }}">
+                </div>
+                <div class="form-group mb-0">
+                    <button class="btn btn--primary" type="submit">Apply Range</button>
+                    {% if date_from or date_to %}
+                        <a class="btn btn--link ml-2" href="{% url 'overdue_report' %}">Clear</a>
+                    {% endif %}
+                </div>
+            </div>
+            <div>
+                <a class="btn btn--success" href="{% url 'overdue_report_csv' %}?date_from={{ date_from }}&amp;date_to={{ date_to }}">
+                    Download Overdue CSV
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <section class="content-card" aria-labelledby="overdue-table-heading">
+        <header class="card-header">
+            <h3 class="card-title" id="overdue-table-heading">
+                {{ rows|length }} overdue loan(s)
+            </h3>
+        </header>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Loan</th>
+                        <th scope="col">Borrower</th>
+                        <th scope="col">Issued By</th>
+                        <th scope="col">Issued</th>
+                        <th scope="col">Due Date</th>
+                        <th scope="col">Overdue Days</th>
+                        <th scope="col">Outstanding Units</th>
+                        <th scope="col">Request Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                        <tr>
+                            <td data-label="Loan"><strong>#{{ row.loan.pk }}</strong></td>
+                            <td data-label="Borrower">{{ row.loan.request.user.get_full_name|default:row.loan.request.user.username }}</td>
+                            <td data-label="Issued By">{{ row.loan.issued_by.get_full_name|default:row.loan.issued_by.username }}</td>
+                            <td data-label="Issued">{{ row.loan.issued_at|date:"M d, Y" }}</td>
+                            <td data-label="Due Date">{{ row.loan.request.return_date|date:"M d, Y" }}</td>
+                            <td data-label="Overdue Days">
+                                <span class="badge badge--danger">{{ row.overdue_days }} day(s)</span>
+                            </td>
+                            <td data-label="Outstanding Units">
+                                {{ row.outstanding_count }}
+                                <ul class="detail-list">
+                                    {% for allocation in row.outstanding_allocations %}
+                                        <li>{{ allocation.unit.asset_code }} &mdash; {{ allocation.unit.catalog_item.name }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </td>
+                            <td data-label="Request Status">
+                                <span class="badge badge--{{ row.loan.request.status|slugify }}">{{ row.loan.request.status }}</span>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted">No overdue loans match this report.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

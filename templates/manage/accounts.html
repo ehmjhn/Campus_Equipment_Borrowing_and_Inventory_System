@@ -51,6 +51,7 @@
                                 </span>
                             </td>
                             <td>
+                                <a class="btn btn--outline btn--sm" href="{% url 'account_detail' row.user.id %}">View history</a>
                                 {% if row.user.id == request.user.id %}
                                     <span class="text-muted">Current account</span>
                                 {% else %}

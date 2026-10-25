@@ -11,6 +11,10 @@
         <div class="admin-header__user">
             <span class="admin-header__user-label">Admin:</span>
             <strong class="admin-header__username">{{ request.user.username }}</strong>
+            <form class="inline-form" method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button class="btn btn--link" type="submit">Sign out</button>
+            </form>
         </div>
     </header>
 

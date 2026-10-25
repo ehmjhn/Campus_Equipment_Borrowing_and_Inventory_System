@@ -120,6 +120,13 @@ class RequestItem(models.Model):
         )
 
 class UnitAllocation(models.Model):
+    RETURNED = 'Returned'
+    CANCELLED = 'Cancelled'
+    RELEASE_REASON_CHOICES = [
+        (RETURNED, 'Returned'),
+        (CANCELLED, 'Cancelled'),
+    ]
+
     request_item = models.ForeignKey(
         RequestItem,
         on_delete=models.CASCADE,
@@ -129,14 +136,32 @@ class UnitAllocation(models.Model):
         EquipmentUnit,
         on_delete=models.PROTECT
     )
+    allocated_at = models.DateTimeField(default=timezone.now, editable=False)
+    released_at = models.DateTimeField(null=True, blank=True)
+    release_reason = models.CharField(
+        max_length=20,
+        choices=RELEASE_REASON_CHOICES,
+        blank=True,
+    )
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
                 fields=['unit'],
-                name='unique_equipment_unit_allocation'
+                condition=models.Q(released_at__isnull=True),
+                name='unique_active_equipment_unit_allocation'
             ),
         ]
+
+    @property
+    def is_active(self):
+        return self.released_at is None
+
+    def release(self, reason, when=None):
+        """End this allocation while keeping it in the audit history."""
+        self.released_at = when or timezone.now()
+        self.release_reason = reason
+        self.save(update_fields=['released_at', 'release_reason'])
 
     def __str__(self):
         return (

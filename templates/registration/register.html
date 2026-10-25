@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Create Account - Campus Equipment System{% endblock %}
+
+{% block main_layout %}
+<main class="auth-layout">
+    <div class="auth-container">
+        <header class="auth-header">
+            <h1 class="auth-title">Campus Equipment Borrowing System</h1>
+            <h2 class="auth-subtitle">Create Account</h2>
+        </header>
+
+        <p class="auth-note">New accounts are created as basic users and can request equipment immediately.</p>
+
+        {% if form.non_field_errors %}
+            <div class="alert alert--error" role="alert">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <form class="auth-form" method="post" action="{% url 'register' %}">
+            {% csrf_token %}
+
+            {% for field in form %}
+                <div class="form-group">
+                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                        <p class="form-help">{{ field.help_text|safe }}</p>
+                    {% endif %}
+                    {% if field.errors %}
+                        <p class="form-error" role="alert">{{ field.errors|join:", " }}</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <div class="form-actions">
+                <button class="btn btn--primary w-100" type="submit">Create Account</button>
+            </div>
+        </form>
+
+        <p class="auth-footer">
+            Already have an account? <a href="{% url 'login' %}">Log in</a>
+        </p>
+    </div>
+</main>
+{% endblock %}

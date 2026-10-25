@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta
@@ -67,13 +68,6 @@ class BorrowRequestForm(forms.Form):
                     )
                 continue
 
-            if quantity is None:
-                self.add_error(
-                    f"quantity_{position}",
-                    "Enter a quantity for the selected item.",
-                )
-                continue
-
             if item.pk in seen_item_ids:
                 self.add_error(
                     f"item_{position}",
@@ -82,6 +76,14 @@ class BorrowRequestForm(forms.Form):
                 continue
 
             seen_item_ids.add(item.pk)
+
+            if quantity is None:
+                self.add_error(
+                    f"quantity_{position}",
+                    "Enter a quantity for the selected item.",
+                )
+                continue
+
             requested_items.append((item, quantity))
 
         if not requested_items:
@@ -121,3 +123,43 @@ class UserProfileForm(forms.ModelForm):
         if user:
             self.fields['first_name'].initial = user.first_name
             self.fields['last_name'].initial = user.last_name
+
+
+class RegisterForm(UserCreationForm):
+    """Public self-registration for basic users.
+
+    The role and activation flags are deliberately not form fields, so a
+    posted ``role`` or ``is_active`` value is ignored. New accounts are always
+    created as active basic users.
+    """
+
+    first_name = forms.CharField(max_length=30, required=True)
+    last_name = forms.CharField(max_length=30, required=True)
+    email = forms.EmailField(required=False)
+    contact_number = forms.CharField(max_length=15, required=False)
+
+    class Meta:
+        model = User
+        fields = ("username", "first_name", "last_name", "email")
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.first_name = self.cleaned_data["first_name"]
+        user.last_name = self.cleaned_data["last_name"]
+        user.email = self.cleaned_data["email"]
+        user.is_staff = False
+        user.is_superuser = False
+
+        if commit:
+            # Saving the user triggers the post_save signal that creates the
+            # profile; it is then completed with the registration details.
+            user.save()
+            profile = user.profile
+            profile.role = UserProfile.BASIC_USER
+            profile.is_active = True
+            profile.contact_number = self.cleaned_data["contact_number"]
+            profile.save(
+                update_fields=["role", "is_active", "contact_number"]
+            )
+
+        return user

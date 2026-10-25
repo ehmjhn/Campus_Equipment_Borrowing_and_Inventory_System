@@ -1,0 +1,58 @@
+{% extends "portal/layout.html" %}
+
+{% block page_title %}My Profile{% endblock %}
+
+{% block portal_content %}
+<div class="page-container">
+    <header class="page-header">
+        <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+            <span class="breadcrumb-current" aria-current="page">My Profile</span>
+        </nav>
+        <h2 class="page-title">My Profile</h2>
+        <p class="page-description">Update your personal details. Your role and activation status are managed by an administrator.</p>
+    </header>
+
+    <section class="content-card" aria-labelledby="profile-summary-heading">
+        <header class="card-header">
+            <h3 class="card-title" id="profile-summary-heading">Account</h3>
+        </header>
+        <dl class="detail-list">
+            <dt>Username</dt>
+            <dd>{{ request.user.username }}</dd>
+            <dt>Role</dt>
+            <dd>{{ request.user.profile.get_role_display }}</dd>
+            <dt>Account status</dt>
+            <dd>{% if request.user.profile.is_active %}Active{% else %}Inactive{% endif %}</dd>
+        </dl>
+    </section>
+
+    <section class="content-card" aria-labelledby="profile-form-heading">
+        <header class="card-header">
+            <h3 class="card-title" id="profile-form-heading">Personal Details</h3>
+        </header>
+
+        <form class="standard-form" method="post" action="{% url 'profile_view' %}">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert--error" role="alert">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            {% for field in form %}
+                <div class="form-group">
+                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                        <p class="form-error" role="alert">{{ field.errors|join:", " }}</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <div class="form-actions">
+                <button class="btn btn--primary" type="submit">Save Changes</button>
+                <a class="btn btn--link" href="{% url 'password_change' %}">Change password</a>
+            </div>
+        </form>
+    </section>
+</div>
+{% endblock %}

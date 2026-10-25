@@ -65,6 +65,31 @@
             <p class="card-description">View asset codes, equipment details, and current unit status.</p>
         </header>
 
+        <div class="card-toolbar mb-4">
+            <form class="filter-form d-flex-gap" method="get" action="{% url 'physical_units_management' %}" aria-label="Filter physical units">
+                <select class="form-select" name="category" aria-label="Filter by category">
+                    <option value="">All categories</option>
+                    {% for category in filter_categories %}
+                        <option value="{{ category.pk }}" {% if category_filter == category.pk|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+                <select class="form-select" name="item" aria-label="Filter by catalog item">
+                    <option value="">All catalog items</option>
+                    {% for catalog_item in filter_items %}
+                        <option value="{{ catalog_item.pk }}" {% if item_filter == catalog_item.pk|stringformat:"s" %}selected{% endif %}>{{ catalog_item.category.name }} — {{ catalog_item.name }}</option>
+                    {% endfor %}
+                </select>
+                <select class="form-select" name="status" aria-label="Filter by unit status">
+                    <option value="">All statuses</option>
+                    {% for status in unit_statuses %}
+                        <option value="{{ status }}" {% if status_filter == status %}selected{% endif %}>{{ status }}</option>
+                    {% endfor %}
+                </select>
+                <button class="btn btn--primary" type="submit">Filter</button>
+                <a class="btn btn--outline" href="{% url 'physical_units_management' %}">Reset</a>
+            </form>
+        </div>
+
         <div class="table-responsive">
             <table class="data-table">
                 <thead>
@@ -75,6 +100,7 @@
                         <th scope="col">Condition</th>
                         <th scope="col">Acquisition Date</th>
                         <th scope="col">Status</th>
+                        <th scope="col">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -88,14 +114,145 @@
                             <td data-label="Status">
                                 <span class="badge badge--{{ unit.status|slugify }}">{{ unit.status }}</span>
                             </td>
+                            <td data-label="Actions">
+                                <details class="row-actions">
+                                    <summary class="btn btn--link btn--small">Manage {{ unit.asset_code }}</summary>
+
+                                    {% if unit.status != "Retired" %}
+                                        <form class="inline-form" method="post" action="{% url 'equipment_unit_update' unit.pk %}">
+                                            {% csrf_token %}
+                                            <div class="form-group">
+                                                <label class="form-label" for="condition-{{ unit.pk }}">Condition</label>
+                                                <textarea class="form-textarea" id="condition-{{ unit.pk }}" name="condition" rows="2" required>{{ unit.condition }}</textarea>
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="form-label" for="acquisition-{{ unit.pk }}">Acquisition date</label>
+                                                <input class="form-input" type="date" id="acquisition-{{ unit.pk }}" name="acquisition_date" value="{{ unit.acquisition_date|date:'Y-m-d' }}" required>
+                                            </div>
+                                            <button class="btn btn--primary btn--small" type="submit">Save details</button>
+                                        </form>
+                                    {% endif %}
+
+                                    {% if unit.status == "Retired" %}
+                                        <form class="inline-form" method="post" action="{% url 'equipment_unit_restore' unit.pk %}">
+                                            {% csrf_token %}
+                                            <button class="btn btn--success btn--small" type="submit" onclick="return confirm('Restore this retired unit to Available?');">Restore to Available</button>
+                                        </form>
+                                    {% elif unit.status != "Reserved" and unit.status != "Issued" %}
+                                        <form class="inline-form" method="post" action="{% url 'equipment_unit_retire' unit.pk %}">
+                                            {% csrf_token %}
+                                            <button class="btn btn--danger btn--small" type="submit" onclick="return confirm('Retire this unit? It will no longer be available for borrowing.');">Retire unit</button>
+                                        </form>
+                                    {% endif %}
+                                </details>
+                            </td>
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center text-muted">No equipment units registered yet.</td>
+                            <td colspan="7" class="text-center text-muted">
+                                {% if category_filter or item_filter or status_filter %}
+                                    No equipment units match the selected filters.
+                                {% else %}
+                                    No equipment units registered yet.
+                                {% endif %}
+                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+    </section>
+
+    <section class="content-card" aria-labelledby="reconciliation-heading">
+        <header class="card-header">
+            <h3 class="card-title" id="reconciliation-heading">Inventory Reconciliation</h3>
+            <p class="card-description">
+                Unit totals are derived from the physical unit records. Any discrepancy between a
+                unit status and its allocation or loan record is listed below.
+            </p>
+        </header>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <caption class="visually-hidden">Physical unit counts per catalog item and status</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Catalog Item</th>
+                        <th scope="col">Category</th>
+                        <th scope="col">Total</th>
+                        {% for status in unit_statuses %}
+                            <th scope="col">{{ status }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in reconciliation_rows %}
+                        <tr>
+                            <td data-label="Catalog Item"><strong>{{ row.item.name }}</strong></td>
+                            <td data-label="Category">{{ row.item.category.name }}</td>
+                            <td data-label="Total">{{ row.total }}</td>
+                            {% for status in row.statuses %}
+                                <td data-label="{{ status.label }}">{{ status.count }}</td>
+                            {% endfor %}
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="{{ unit_statuses|length|add:3 }}" class="text-center text-muted">No catalog items registered yet.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card-body">
+            {% if anomalies.orphaned_reserved or anomalies.stale_allocations or anomalies.issued_without_active_loan %}
+                <div class="alert alert--warning" role="status">
+                    <p>
+                        {{ anomalies.orphaned_reserved|length }} orphaned reserved unit(s),
+                        {{ anomalies.stale_allocations|length }} stale allocation(s),
+                        {{ anomalies.issued_without_active_loan|length }} issued unit(s) without an active loan.
+                    </p>
+                </div>
+
+                {% if anomalies.orphaned_reserved %}
+                    <h4 class="section-title">Orphaned reserved units</h4>
+                    <ul class="detail-list">
+                        {% for unit in anomalies.orphaned_reserved %}
+                            <li>{{ unit.asset_code }} &mdash; {{ unit.catalog_item.name }}</li>
+                        {% endfor %}
+                    </ul>
+
+                    <form class="inline-form" method="post" action="{% url 'reconcile_inventory' %}">
+                        {% csrf_token %}
+                        <button class="btn btn--primary" type="submit">Release orphaned reserved units</button>
+                    </form>
+                {% endif %}
+
+                {% if anomalies.stale_allocations %}
+                    <h4 class="section-title">Stale allocations (approved request without a reserved unit)</h4>
+                    <ul class="detail-list">
+                        {% for allocation in anomalies.stale_allocations %}
+                            <li>
+                                Asset {{ allocation.unit.asset_code }} ({{ allocation.unit.status }})
+                                for request #{{ allocation.request_item.request_id }}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    <p class="text-muted">Review these requests manually before changing any record.</p>
+                {% endif %}
+
+                {% if anomalies.issued_without_active_loan %}
+                    <h4 class="section-title">Issued units without an active loan</h4>
+                    <ul class="detail-list">
+                        {% for unit in anomalies.issued_without_active_loan %}
+                            <li>{{ unit.asset_code }} &mdash; {{ unit.catalog_item.name }}</li>
+                        {% endfor %}
+                    </ul>
+                    <p class="text-muted">Review the related loan records before changing any unit status.</p>
+                {% endif %}
+            {% else %}
+                <p class="text-muted">No inventory discrepancies detected.</p>
+            {% endif %}
         </div>
     </section>
 </div>

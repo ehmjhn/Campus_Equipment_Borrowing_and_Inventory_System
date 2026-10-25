@@ -1,6 +1,6 @@
 import random
 from datetime import timedelta
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.db import transaction
@@ -25,8 +25,11 @@ class Command(BaseCommand):
             admin = self.create_users()
             items_map, units_list = self.create_inventory()
 
-            # Create 20 Requests ensuring 8 Loans and 4 Maintenance records
+            # 22 requests covering every workflow state that has data:
+            # Pending, Approved, Rejected, Cancelled, Issued, Partially Returned,
+            # and Returned. Overdue loans are computed from past due dates.
             self.create_pending_requests(items_map)
+            self.create_approved_requests(items_map, units_list, admin)
             self.create_rejected_requests(items_map, admin)
             self.create_cancelled_requests(items_map)
             self.create_issued_loans(items_map, units_list, admin)  # 4 Loans (2 normal, 2 overdue)
@@ -34,8 +37,16 @@ class Command(BaseCommand):
             self.create_fully_returned_loans(items_map, units_list, admin)  # 2 Loans
 
             self.create_standalone_maintenance(units_list, admin)
+            self.retire_one_unit(units_list, admin)
 
             self.stdout.write(self.style.SUCCESS("Database successfully seeded!"))
+            self.stdout.write(f"  Categories: {Category.objects.count()}")
+            self.stdout.write(f"  Catalog items: {CatalogItem.objects.count()}")
+            self.stdout.write(f"  Physical units: {EquipmentUnit.objects.count()}")
+            self.stdout.write(f"  Requests: {BorrowRequest.objects.count()}")
+            self.stdout.write(f"  Loans: {Loan.objects.count()}")
+            self.stdout.write(f"  Maintenance records: {MaintenanceRecord.objects.count()}")
+            self.stdout.write(f"  Audit entries: {AuditLog.objects.count()}")
             self.stdout.write("Admin: admin / admin123")
             self.stdout.write("Users: user1 to user8 / user123")
 
@@ -53,15 +64,31 @@ class Command(BaseCommand):
         UserProfile.objects.all().delete()
         User.objects.filter(is_superuser=False).delete()
 
+        # Profiles are normally created by the post_save signal. Existing
+        # superusers were preserved above, so make sure they still have one.
+        for user in User.objects.all():
+            UserProfile.objects.get_or_create(
+                user=user,
+                defaults={
+                    "role": (
+                        UserProfile.ADMIN
+                        if user.is_superuser
+                        else UserProfile.BASIC_USER
+                    ),
+                },
+            )
+
     def create_users(self):
         admin_user = User.objects.create_user(username='admin', password='admin123', first_name='System',
                                               last_name='Admin')
-        UserProfile.objects.create(user=admin_user, role=UserProfile.ADMIN, is_active=True)
+        admin_profile = admin_user.profile
+        admin_profile.role = UserProfile.ADMIN
+        admin_profile.is_active = True
+        admin_profile.save(update_fields=["role", "is_active"])
 
         for i in range(1, 9):
-            u = User.objects.create_user(username=f'user{i}', password='user123', first_name='Basic',
-                                         last_name=f'User {i}')
-            UserProfile.objects.create(user=u, role=UserProfile.BASIC_USER, is_active=True)
+            User.objects.create_user(username=f'user{i}', password='user123', first_name='Basic',
+                                     last_name=f'User {i}')
 
         return admin_user
 
@@ -138,22 +165,70 @@ class Command(BaseCommand):
             req = self._create_base_request(items_map, BorrowRequest.REJECTED, 3)
             req.admin_remarks = "Invalid purpose."
             req.save()
+            AuditLog.objects.create(
+                actor=admin,
+                action="REQUEST_REJECTED",
+                details=f"Rejected request #{req.pk}. Reason: Invalid purpose.",
+            )
 
     def create_cancelled_requests(self, items_map):
         for _ in range(4):
             self._create_base_request(items_map, BorrowRequest.CANCELLED, 3)
 
-    def _allocate_and_issue(self, req, units_list, admin, days_ago_issued):
+    def create_approved_requests(self, items_map, units_list, admin):
+        """Requests waiting for release: units are reserved but not issued."""
+        for _ in range(2):
+            req = self._create_base_request(items_map, BorrowRequest.APPROVED, 3, units_list)
+            self._reserve_units(req, units_list, admin)
+
+    def _first_available_unit(self, units_list, catalog_item):
+        for unit in units_list:
+            if unit.catalog_item_id == catalog_item.pk and unit.status == EquipmentUnit.AVAILABLE:
+                return unit
+
+        raise CommandError(
+            f"No available unit left for '{catalog_item.name}'. "
+            "Reduce the seeded request volume."
+        )
+
+    def _reserve_units(self, req, units_list, admin):
+        reserved_codes = []
         for r_item in req.items.all():
-            # Safely fetch the first available unit
-            unit = next(
-                u for u in units_list if u.catalog_item == r_item.catalog_item and u.status == EquipmentUnit.AVAILABLE)
-            unit.status = EquipmentUnit.ISSUED
-            unit.save()
+            unit = self._first_available_unit(units_list, r_item.catalog_item)
+            unit.status = EquipmentUnit.RESERVED
+            unit.save(update_fields=["status"])
             UnitAllocation.objects.create(request_item=r_item, unit=unit)
+            reserved_codes.append(unit.asset_code)
+
+        AuditLog.objects.create(
+            actor=admin,
+            action="REQUEST_APPROVED",
+            details=(
+                f"Approved request #{req.pk}. Reserved asset codes: "
+                f"{', '.join(reserved_codes)}."
+            ),
+        )
+
+    def _allocate_and_issue(self, req, units_list, admin, days_ago_issued):
+        issued_codes = []
+        for r_item in req.items.all():
+            unit = self._first_available_unit(units_list, r_item.catalog_item)
+            unit.status = EquipmentUnit.ISSUED
+            unit.save(update_fields=["status"])
+            UnitAllocation.objects.create(request_item=r_item, unit=unit)
+            issued_codes.append(unit.asset_code)
 
         loan = Loan.objects.create(request=req, issued_by=admin)
         Loan.objects.filter(pk=loan.pk).update(issued_at=timezone.now() - timedelta(days=days_ago_issued))
+        AuditLog.objects.create(
+            actor=admin,
+            action="LOAN_ISSUED",
+            details=(
+                f"Issued request #{req.pk} as loan #{loan.pk}. "
+                f"Due date: {req.return_date.isoformat()}. "
+                f"Asset codes: {', '.join(issued_codes)}."
+            ),
+        )
         return loan
 
     def create_issued_loans(self, items_map, units_list, admin):
@@ -188,6 +263,7 @@ class Command(BaseCommand):
             unit.status = EquipmentUnit.AVAILABLE
             unit.save()
             ReturnRecord.objects.create(loan=loan, unit=unit, condition_on_return="Good", received_by=admin)
+            alloc.release(UnitAllocation.RETURNED)
 
     def create_fully_returned_loans(self, items_map, units_list, admin):
         # 2 Fully returned loans. One will trigger a maintenance record.
@@ -205,6 +281,7 @@ class Command(BaseCommand):
                     unit.save()
                     ReturnRecord.objects.create(loan=loan, unit=unit, condition_on_return="Damaged: Screen cracked",
                                                 received_by=admin)
+                    alloc.release(UnitAllocation.RETURNED)
                     MaintenanceRecord.objects.create(
                         unit=unit, problem_description="Screen cracked upon return", handled_by=admin,
                         reported_at=timezone.now()
@@ -213,6 +290,7 @@ class Command(BaseCommand):
                     unit.status = EquipmentUnit.AVAILABLE
                     unit.save()
                     ReturnRecord.objects.create(loan=loan, unit=unit, condition_on_return="Good", received_by=admin)
+                    alloc.release(UnitAllocation.RETURNED)
 
     def create_standalone_maintenance(self, units_list, admin):
         available_units = [u for u in units_list if u.status == EquipmentUnit.AVAILABLE]
@@ -233,3 +311,26 @@ class Command(BaseCommand):
         m2 = MaintenanceRecord.objects.create(unit=u3, problem_description="Software glitch",
                                               action_taken="Factory reset", handled_by=admin)
         MaintenanceRecord.objects.filter(pk=m2.pk).update(fixed_at=timezone.now())
+
+        AuditLog.objects.create(
+            actor=admin,
+            action="MAINTENANCE_OPENED",
+            details=f"Opened maintenance record for asset {u1.asset_code}. Problem: Battery failing.",
+        )
+
+    def retire_one_unit(self, units_list, admin):
+        """Seed the fifth inventory state so every status is demonstrable."""
+        unit = next((u for u in units_list if u.status == EquipmentUnit.AVAILABLE), None)
+
+        if unit is None:
+            return
+
+        unit.status = EquipmentUnit.RETIRED
+        unit.condition = "Retired: beyond economical repair"
+        unit.save(update_fields=["status", "condition"])
+
+        AuditLog.objects.create(
+            actor=admin,
+            action="EQUIPMENT_UNIT_RETIRED",
+            details=f"Retired equipment unit {unit.asset_code} from status 'Available'.",
+        )

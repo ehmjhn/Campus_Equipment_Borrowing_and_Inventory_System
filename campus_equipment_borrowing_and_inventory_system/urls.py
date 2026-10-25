@@ -1,18 +1,22 @@
 from django.urls import path, include
-from django.shortcuts import redirect
 from Campus_Equipment_Borrowing_and_Inventory_System_APP import views
 
 urlpatterns = [
-    # Home
-    path("", lambda request: redirect("admin_dashboard"), name="home"),
+    # Home and post-login routing (role aware)
+    path("", views.role_redirect, name="home"),
+    path("dashboard/", views.role_redirect, name="post_login"),
 
     # Dashboard and reports
     path("manage/", views.admin_dashboard, name="admin_dashboard"),
     path("manage/reports/equipment-usage.csv", views.dashboard_report_csv, name="dashboard_report_csv"),
+    path("manage/reports/overdue/", views.overdue_report, name="overdue_report"),
+    path("manage/reports/overdue.csv", views.overdue_report_csv, name="overdue_report_csv"),
 
     # A1 - Account Management
     path("manage/accounts/", views.account_management, name="account_management"),
+    path("manage/accounts/<int:user_id>/", views.account_detail, name="account_detail"),
     path("manage/accounts/<int:user_id>/toggle-status/", views.toggle_account_status, name="toggle_account_status"),
+    path("accounts/register/", views.register, name="register"),
     path("accounts/", include("django.contrib.auth.urls")),
 
     # A2 - Equipment Catalog
@@ -25,7 +29,11 @@ urlpatterns = [
     path("manage/catalog-items/<int:item_id>/edit/", views.catalog_item_edit, name="catalog_item_edit"),
     path("manage/catalog-items/<int:item_id>/archive/", views.catalog_item_archive, name="catalog_item_archive"),
     path("manage/equipment-units/create/", views.equipment_unit_create, name="equipment_unit_create"),
+    path("manage/equipment-units/<int:unit_id>/update/", views.equipment_unit_update, name="equipment_unit_update"),
+    path("manage/equipment-units/<int:unit_id>/retire/", views.equipment_unit_retire, name="equipment_unit_retire"),
+    path("manage/equipment-units/<int:unit_id>/restore/", views.equipment_unit_restore, name="equipment_unit_restore"),
     path("manage/physical-units/", views.physical_units_management, name="physical_units_management"),
+    path("manage/physical-units/reconcile/", views.reconcile_inventory, name="reconcile_inventory"),
 
     # A3 - Request Review
     path("manage/requests/", views.request_review, name="request_review"),
@@ -51,6 +59,7 @@ urlpatterns = [
     path("manage/audit-settings/", views.audit_settings_management, name="audit_settings_management"),
 
     # U1 - Account and profile
+    path("portal/", views.portal_home, name="portal_home"),
     path("portal/profile/", views.profile_view, name="profile_view"),
 
     # U2 - Browse equipment
