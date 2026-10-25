@@ -15,6 +15,10 @@ class Command(BaseCommand):
     help = 'Seeds the database with fictional data meeting project requirements.'
 
     def handle(self, *args, **kwargs):
+        # Deterministic demo data: the same command must produce the same
+        # counts on every machine for the documentation and defense.
+        random.seed(401)
+
         with transaction.atomic():
             self.clear_existing_data()
             self.stdout.write("Previous data cleared.")

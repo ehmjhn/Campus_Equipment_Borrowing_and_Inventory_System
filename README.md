@@ -236,7 +236,7 @@ python manage.py test
 - 22 requests across Pending, Approved, Rejected, Cancelled, Issued,
   Partially Returned, and Returned
 - 8 issued loans (including overdue loans)
-- 5 maintenance records
+- 4 maintenance records
 - units in all five states: Available, Reserved, Issued, Maintenance, Retired
 - audit entries for approval, rejection, release, maintenance, and retirement
 
