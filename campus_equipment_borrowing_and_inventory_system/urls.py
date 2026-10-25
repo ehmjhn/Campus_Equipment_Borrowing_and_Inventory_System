@@ -55,4 +55,15 @@ urlpatterns = [
 
     # U2 - Browse equipment
     path("portal/catalog/", views.browse_catalog, name="browse_catalog"),
+
+    # U3 - Submit borrowing requests
+    path("portal/requests/new/", views.borrow_request_create, name="borrow_request_create"),
+
+    # U4 - Track and cancel borrowing requests
+    path("portal/requests/", views.request_history, name="request_history"),
+    path(
+        "portal/requests/<int:request_id>/cancel/",
+        views.cancel_borrow_request,
+        name="cancel_borrow_request",
+    ),
 ]

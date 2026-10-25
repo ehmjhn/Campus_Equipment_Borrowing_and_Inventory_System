@@ -29,7 +29,7 @@ from .models import (
     ReturnRecord,
     MaintenanceRecord
 )
-from .forms import UserProfileForm
+from .forms import BorrowRequestForm, UserProfileForm
 
 User = get_user_model()
 
@@ -49,6 +49,31 @@ def admin_required(view_func):
             not request.user.is_active
             or not profile.is_active
             or profile.role != UserProfile.ADMIN
+        ):
+            return HttpResponseForbidden(
+                "You do not have permission to access this page."
+            )
+
+        return view_func(request, *args, **kwargs)
+
+    return _wrapped_view
+
+
+def basic_user_required(view_func):
+    @login_required
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        try:
+            profile = request.user.profile
+        except UserProfile.DoesNotExist:
+            return HttpResponseForbidden(
+                "You do not have permission to access this page."
+            )
+
+        if (
+            not request.user.is_active
+            or not profile.is_active
+            or profile.role != UserProfile.BASIC_USER
         ):
             return HttpResponseForbidden(
                 "You do not have permission to access this page."
@@ -1009,7 +1034,7 @@ def _max_loan_duration_days():
 
 
 def _max_quantity():
-    return SystemSetting.get_int("max_quantity", 5)
+    return SystemSetting.get_int("max_quantity", 3)
 
 
 def _request_search(queryset, search_query):
@@ -1828,20 +1853,233 @@ def profile_view(request):
 
     return render(request, 'portal/profile.html', {'form': form})
 
-@login_required
+@basic_user_required
 def browse_catalog(request):
+    return render(
+        request,
+        "portal/catalog.html",
+        {"items": _portal_catalog_items()},
+    )
 
-    if not request.user.profile.is_active:
-        return redirect('logout')
 
-    if request.user.profile.role == UserProfile.ADMIN:
-        return redirect('/manage/')
-
-    items = CatalogItem.objects.filter(is_archived=False).annotate(
+def _portal_catalog_items():
+    return CatalogItem.objects.filter(
+        is_archived=False,
+        category__is_archived=False,
+    ).annotate(
         available_quantity=Count(
-            'units',
-            filter=Q(units__status='Available')
+            "units",
+            filter=Q(units__status=EquipmentUnit.AVAILABLE),
         )
-    ).select_related('category')
+    ).select_related("category").order_by("category__name", "name")
 
-    return render(request, 'portal/catalog.html', {'items': items})
+
+@basic_user_required
+def borrow_request_create(request):
+    catalog_items = _portal_catalog_items()
+    max_quantity = SystemSetting.get_int("max_quantity", 3)
+    max_duration = _max_loan_duration_days()
+    form_kwargs = {
+        "catalog_items": catalog_items,
+        "max_quantity": max_quantity,
+        "max_loan_duration_days": max_duration,
+    }
+
+    if request.method == "POST":
+        form = BorrowRequestForm(request.POST, **form_kwargs)
+        if form.is_valid():
+            with transaction.atomic():
+                borrow_request = BorrowRequest.objects.create(
+                    user=request.user,
+                    purpose=form.cleaned_data["purpose"],
+                    return_date=form.cleaned_data["return_date"],
+                    status=BorrowRequest.PENDING,
+                )
+                RequestItem.objects.bulk_create(
+                    [
+                        RequestItem(
+                            request=borrow_request,
+                            catalog_item=item,
+                            quantity=quantity,
+                        )
+                        for item, quantity in form.cleaned_data["requested_items"]
+                    ]
+                )
+                AuditLog.objects.create(
+                    actor=request.user,
+                    action="REQUEST_SUBMITTED",
+                    details=(
+                        f"Submitted request #{borrow_request.pk} for "
+                        f"{', '.join(
+                            f'{quantity}x {item.name}'
+                            for item, quantity in form.cleaned_data['requested_items']
+                        )}. Requested return date: "
+                        f"{borrow_request.return_date.isoformat()}."
+                    ),
+                )
+
+            messages.success(
+                request,
+                f"Request #{borrow_request.pk} submitted and is pending review.",
+            )
+            return redirect("request_history")
+    else:
+        form = BorrowRequestForm(**form_kwargs)
+
+    today = timezone.localdate()
+    form.fields["return_date"].widget.attrs.update(
+        {
+            "min": (today + timedelta(days=1)).isoformat(),
+            "max": (today + timedelta(days=max_duration)).isoformat(),
+        }
+    )
+
+    return render(
+        request,
+        "portal/request_form.html",
+        {
+            "form": form,
+            "item_rows": [
+                (form[f"item_{position}"], form[f"quantity_{position}"])
+                for position in range(1, 4)
+            ],
+            "max_quantity": max_quantity,
+            "max_loan_duration_days": max_duration,
+            "today": today,
+            "max_return_date": today + timedelta(days=max_duration),
+        },
+    )
+
+
+@basic_user_required
+def request_history(request):
+    requests = (
+        BorrowRequest.objects.filter(user=request.user)
+        .prefetch_related(
+            "items__catalog_item__category",
+            "items__allocations__unit",
+            "loan__returns__unit",
+        )
+        .order_by("-requested_at", "-id")
+    )
+    page_obj = Paginator(requests, 10).get_page(request.GET.get("page"))
+    history_rows = []
+    today = timezone.localdate()
+
+    for borrow_request in page_obj.object_list:
+        try:
+            loan = borrow_request.loan
+        except Loan.DoesNotExist:
+            loan = None
+
+        returns_by_unit_id = (
+            {return_record.unit_id: return_record for return_record in loan.returns.all()}
+            if loan
+            else {}
+        )
+        item_rows = []
+        for request_item in borrow_request.items.all():
+            allocations = [
+                (
+                    allocation,
+                    returns_by_unit_id.get(allocation.unit_id),
+                )
+                for allocation in request_item.allocations.all()
+            ]
+            item_rows.append(
+                {
+                    "request_item": request_item,
+                    "allocations": allocations,
+                }
+            )
+
+        history_rows.append(
+            {
+                "borrow_request": borrow_request,
+                "loan": loan,
+                "item_rows": item_rows,
+                "is_overdue": (
+                    loan is not None
+                    and borrow_request.status
+                    in (
+                        BorrowRequest.ISSUED,
+                        BorrowRequest.PARTIALLY_RETURNED,
+                    )
+                    and borrow_request.return_date < today
+                ),
+            }
+        )
+
+    return render(
+        request,
+        "portal/request_history.html",
+        {
+            "page_obj": page_obj,
+            "history_rows": history_rows,
+        },
+    )
+
+
+@basic_user_required
+@require_POST
+def cancel_borrow_request(request, request_id):
+    with transaction.atomic():
+        borrow_request = get_object_or_404(
+            BorrowRequest.objects.select_for_update(),
+            pk=request_id,
+            user=request.user,
+        )
+
+        if borrow_request.status not in (
+            BorrowRequest.PENDING,
+            BorrowRequest.APPROVED,
+        ):
+            messages.error(
+                request,
+                "Only pending or approved requests can be cancelled.",
+            )
+            return redirect("request_history")
+
+        allocation_ids = list(
+            UnitAllocation.objects.filter(
+                request_item__request=borrow_request,
+            ).values_list("unit_id", flat=True)
+        )
+        units = list(
+            EquipmentUnit.objects.select_for_update()
+            .filter(pk__in=allocation_ids)
+            .order_by("id")
+        )
+
+        if len(units) != len(allocation_ids) or any(
+            unit.status != EquipmentUnit.RESERVED for unit in units
+        ):
+            messages.error(
+                request,
+                "The reserved equipment could not be released. Contact an administrator.",
+            )
+            return redirect("request_history")
+
+        released_asset_codes = [unit.asset_code for unit in units]
+        for unit in units:
+            unit.status = EquipmentUnit.AVAILABLE
+            unit.save(update_fields=["status"])
+
+        if allocation_ids:
+            UnitAllocation.objects.filter(
+                request_item__request=borrow_request,
+            ).delete()
+
+        borrow_request.status = BorrowRequest.CANCELLED
+        borrow_request.save(update_fields=["status"])
+        AuditLog.objects.create(
+            actor=request.user,
+            action="REQUEST_CANCELLED",
+            details=(
+                f"Cancelled request #{borrow_request.pk}. Released asset codes: "
+                f"{', '.join(released_asset_codes) or 'none'}."
+            ),
+        )
+
+    messages.success(request, f"Request #{request_id} cancelled.")
+    return redirect("request_history")
