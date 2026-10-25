@@ -90,7 +90,7 @@
                 {% if row.borrow_request.status == "Pending" or row.borrow_request.status == "Approved" %}
                     <form class="inline-form" method="post" action="{% url 'cancel_borrow_request' row.borrow_request.pk %}">
                         {% csrf_token %}
-                        <button class="btn btn--danger btn--small" type="submit">
+                        <button class="btn btn--danger btn--small" type="submit" onclick="return confirm('Cancel this request and release its reserved units?');">
                             Cancel Request #{{ row.borrow_request.pk }}
                         </button>
                     </form>
