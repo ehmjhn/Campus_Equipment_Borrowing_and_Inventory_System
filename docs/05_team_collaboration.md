@@ -47,17 +47,17 @@ Repository:
 
 Commit history at packaging time:
 
-| Commit | Date | Author | Purpose |
-| :--- | :--- | :--- | :--- |
-| `9c6e858` | 2026-10-22 | Emman Alcanices | Core schema and dashboard framework |
-| `b22862f` | 2026-10-22 | Emman Alcanices | Dashboard and A1–A3 |
+| Commit | Date | Author             | Purpose |
+| :--- | :--- |:-------------------| :--- |
+| `9c6e858` | 2026-10-22 | Emman Alcanices    | Core schema and dashboard framework |
+| `b22862f` | 2026-10-22 | Emman Alcanices    | Dashboard and A1–A3 |
 | `a657104` | 2026-10-23 | Daniel Alejandrino | A4–A6 equipment workflows |
-| `b1f5538` | 2026-10-23 | Copilot (reviewed by Jerome San Pedro) | A7–A8 |
-| `0692978` | 2026-10-23 | Jerome San Pedro | A6–A8 |
-| `ee361d3` | 2026-10-24 | Emman Alcanices | Custom admin completion and layout architecture |
-| `ff17c3f` | 2026-10-24 | Ian Joshua Lizano | Basic-user URL routes |
+| `b1f5538` | 2026-10-23 | Jerome San Pedro   | A7–A8 |
+| `0692978` | 2026-10-23 | Jerome San Pedro   | A6–A8 |
+| `ee361d3` | 2026-10-24 | Emman Alcanices    | Custom admin completion and layout architecture |
+| `ff17c3f` | 2026-10-24 | Ian Joshua Lizano  | Basic-user URL routes |
 | `5145c9d` | 2026-10-25 | Marc Renzo Bulaong | U3 and U4 |
-| `0ab10f1` | 2026-10-25 | Emman Alcanices | Merge of `user-portal-dev` (PR #1) |
+| `0ab10f1` | 2026-10-25 | Emman Alcanices    | Merge of `user-portal-dev` (PR #1) |
 
 The raw branch graph is stored in `docs/evidence/git_graph.txt`.
 
