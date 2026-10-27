@@ -481,7 +481,7 @@ def account_management(request):
             "is_active": account.is_active and profile.is_active,
         })
 
-    paginator = Paginator(account_rows, 10)
+    paginator = Paginator(account_rows, _admin_page_size(request))
     page_obj = paginator.get_page(request.GET.get("page"))
 
     return render(
@@ -1409,7 +1409,18 @@ def request_review(request):
     if date_to:
         requests = requests.filter(requested_at__date__lte=date_to)
 
-    paginator = Paginator(requests, 10)
+    # Request Review pagination
+    try:
+        per_page = int(request.GET.get("per_page", 10))
+    except (ValueError, TypeError):
+        per_page = 10
+
+    # Allowed rows per page
+    if per_page not in (10, 20, 50, 100):
+        per_page = 10
+
+    # Apply pagination after all filters
+    paginator = Paginator(requests, per_page)
     page_obj = paginator.get_page(request.GET.get("page"))
 
     # Show the reviewer how many units are free right now, so a request is
@@ -2358,7 +2369,7 @@ def audit_settings_management(request):
     if date_to:
         logs = logs.filter(timestamp__date__lte=date_to)
 
-    page_obj = Paginator(logs, 25).get_page(request.GET.get("page"))
+    page_obj = Paginator(logs, _admin_page_size(request)).get_page(request.GET.get("page"))
     return render(
         request,
         "manage/audit_settings.html",
@@ -2790,3 +2801,11 @@ def cancel_borrow_request(request, request_id):
 
     messages.success(request, f"Request #{request_id} cancelled.")
     return redirect("request_history")
+
+def _admin_page_size(request):
+    """Allow only the supported admin table page sizes."""
+    try:
+        size = int(request.GET.get("per_page", "10"))
+    except (ValueError, TypeError):
+        size = 10
+    return size if size in (10, 20, 50, 100) else 10
