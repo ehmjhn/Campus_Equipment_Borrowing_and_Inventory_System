@@ -15,6 +15,20 @@ class CatalogItemChoiceField(forms.ModelChoiceField):
         )
 
 
+class AvailabilitySelect(forms.Select):
+    def __init__(self, *args, unavailable_values=(), **kwargs):
+        self.unavailable_values = {str(value) for value in unavailable_values}
+        super().__init__(*args, **kwargs)
+
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(
+            name, value, label, selected, index, subindex=subindex, attrs=attrs
+        )
+        if str(value) in self.unavailable_values:
+            option["attrs"]["disabled"] = True
+        return option
+
+
 class BorrowRequestForm(forms.Form):
     purpose = forms.CharField(
         label="Purpose",
@@ -42,6 +56,9 @@ class BorrowRequestForm(forms.Form):
     ):
         super().__init__(*args, **kwargs)
         self.max_loan_duration_days = max_loan_duration_days
+        unavailable_item_ids = catalog_items.filter(
+            available_quantity=0
+        ).values_list("pk", flat=True)
 
         for position in range(1, 4):
             self.fields[f"item_{position}"] = CatalogItemChoiceField(
@@ -49,7 +66,10 @@ class BorrowRequestForm(forms.Form):
                 required=position == 1,
                 label=f"Item {position}",
                 empty_label="Select equipment",
-                widget=forms.Select(attrs={"class": "form-select"}),
+                widget=AvailabilitySelect(
+                    attrs={"class": "form-select"},
+                    unavailable_values=unavailable_item_ids,
+                ),
             )
             self.fields[f"quantity_{position}"] = forms.IntegerField(
                 required=False,
@@ -98,6 +118,15 @@ class BorrowRequestForm(forms.Form):
                     "Enter a quantity for the selected item.",
                 )
                 continue
+
+            if quantity > item.available_quantity:
+                self.add_error(
+                    f"quantity_{position}",
+                    (
+                        f"Only {item.available_quantity} unit(s) are currently "
+                        "available for this item."
+                    ),
+                )
 
             requested_items.append((item, quantity))
 

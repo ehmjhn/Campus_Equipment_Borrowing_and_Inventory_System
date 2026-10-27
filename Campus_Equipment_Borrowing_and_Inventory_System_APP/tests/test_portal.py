@@ -112,6 +112,20 @@ class CatalogTests(PortalTestCase):
         )
         self.assertEqual(response.context["form"]["quantity_1"].value(), 1)
 
+    def test_request_form_disables_items_with_no_available_units(self):
+        response = self.client.get(reverse("borrow_request_create"))
+
+        self.assertContains(
+            response,
+            f'<option value="{self.second_item.pk}" disabled>',
+            html=False,
+        )
+        self.assertContains(
+            response,
+            f'<option value="{self.item.pk}">',
+            html=False,
+        )
+
 
 class RequestSubmissionTests(PortalTestCase):
     def test_submit_creates_pending_request_without_reserving_units(self):
@@ -180,6 +194,42 @@ class RequestSubmissionTests(PortalTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("return_date", response.context["form"].errors)
+        self.assertFalse(BorrowRequest.objects.exists())
+
+    def test_submit_rejects_quantity_above_available_inventory(self):
+        response = self.client.post(
+            reverse("borrow_request_create"),
+            {
+                "purpose": "For a class presentation",
+                "return_date": (
+                    timezone.localdate() + timedelta(days=2)
+                ).isoformat(),
+                "item_1": str(self.item.pk),
+                "quantity_1": "2",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("quantity_1", response.context["form"].errors)
+        self.assertContains(response, "Only 1 unit(s) are currently available")
+        self.assertFalse(BorrowRequest.objects.exists())
+
+    def test_submit_rejects_item_with_no_available_inventory(self):
+        response = self.client.post(
+            reverse("borrow_request_create"),
+            {
+                "purpose": "For a class presentation",
+                "return_date": (
+                    timezone.localdate() + timedelta(days=2)
+                ).isoformat(),
+                "item_1": str(self.second_item.pk),
+                "quantity_1": "1",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("quantity_1", response.context["form"].errors)
+        self.assertContains(response, "This unit is currently unavailable")
         self.assertFalse(BorrowRequest.objects.exists())
 
 
