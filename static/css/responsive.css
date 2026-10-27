@@ -1,0 +1,390 @@
+/* ==========================================================================
+   Responsive rules
+   ========================================================================== */
+
+@media (max-width: 1280px) {
+    :root {
+        --sidebar-w: 256px;
+    }
+
+    .kpi-card {
+        padding: 16px;
+    }
+
+    .kpi-card__value {
+        font-size: 1.7rem;
+    }
+}
+
+@media (max-width: 1100px) {
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.24s var(--ease);
+        box-shadow: 0 0 60px rgba(8, 20, 38, 0.35);
+    }
+
+    .sidebar.is-open {
+        transform: translateX(0);
+    }
+
+    .icon-button.sidebar__close {
+        display: grid;
+    }
+
+    .app-main {
+        margin-left: 0;
+    }
+
+    .icon-button.topbar__menu {
+        display: inline-grid;
+    }
+
+    .auth-shell {
+        grid-template-columns: 1fr;
+    }
+
+    .auth-brand {
+        display: none;
+    }
+
+    body.nav-open {
+        overflow: hidden;
+    }
+
+    .profile-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 900px) {
+    .content {
+        padding: 20px 16px 26px;
+    }
+
+    .grid-layout,
+    .grid-layout--maintenance {
+        grid-template-columns: 1fr;
+    }
+
+    .grid-layout > .form-section {
+        position: static;
+    }
+
+    .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .data-grid--3-col,
+    .data-grid--4-col {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .action-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .action-grid .w-50 {
+        width: 100% !important;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .topbar__action span {
+        display: none;
+    }
+
+    .topbar__action {
+        width: 40px;
+        padding: 0;
+    }
+
+    .topbar__action .icon {
+        width: 18px;
+        height: 18px;
+    }
+
+    .user-menu__meta {
+        display: none;
+    }
+
+    .user-menu__trigger > .icon {
+        display: none;
+    }
+
+    .page-header.d-flex-between,
+    .section-header.d-flex-between {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .card-toolbar,
+    .filter-form {
+        align-items: stretch;
+    }
+
+    .filter-form > * {
+        flex: 1 1 160px;
+    }
+
+    .filter-form .btn {
+        flex: 0 0 auto;
+    }
+
+    dl.detail-list {
+        grid-template-columns: 1fr;
+        gap: 2px 0;
+    }
+
+    dl.detail-list dt {
+        margin-top: 8px;
+        font-size: 0.72rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    dl.detail-list dd {
+        margin-bottom: 4px;
+    }
+
+    .borrowing-slip .grid-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .slip-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .account-summary {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 720px) {
+    .catalog-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .grid-form {
+        grid-template-columns: 1fr;
+        padding: 0 16px 16px;
+    }
+
+    .content-card > .card-header {
+        padding: 16px 16px 0;
+    }
+
+    .card-header,
+    .card-body {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .card-body {
+        padding-top: 14px;
+        padding-bottom: 16px;
+    }
+
+    dl.detail-list {
+        padding: 14px 16px;
+    }
+
+    .content-card > .card-toolbar {
+        margin: 0 16px 14px;
+    }
+
+    .data-table thead th,
+    .data-table tbody td {
+        padding: 10px 12px;
+    }
+
+    .pagination-nav {
+        justify-content: flex-start;
+    }
+
+    .pagination-nav .btn {
+        flex: 1 1 auto;
+    }
+
+    .pagination-info {
+        width: 100%;
+        order: -1;
+        padding-left: 0;
+    }
+
+    .toast-stack {
+        top: auto;
+        bottom: 14px;
+        left: 16px;
+        right: 16px;
+        width: auto;
+    }
+
+    .page-toolbar {
+        justify-content: flex-start;
+    }
+
+    .profile-hero {
+        flex-wrap: wrap;
+    }
+
+    .signature-line.w-40,
+    .d-flex-between > .w-40 {
+        width: 100% !important;
+    }
+
+    .borrowing-slip {
+        padding-left: 4px !important;
+        padding-right: 4px !important;
+    }
+
+    .borrowing-slip .card-body.p-5 {
+        padding: 18px !important;
+    }
+}
+
+@media (max-width: 560px) {
+    :root {
+        --topbar-h: 62px;
+    }
+
+    body {
+        font-size: 14.5px;
+    }
+
+    .content {
+        padding: 16px 12px 24px;
+    }
+
+    .app-footer {
+        padding: 14px 16px;
+        font-size: 0.68rem;
+    }
+
+    .kpi-grid,
+    .data-grid--3-col,
+    .data-grid--4-col {
+        grid-template-columns: 1fr;
+    }
+
+    .kpi-card {
+        align-items: center;
+    }
+
+    .kpi-card__value {
+        font-size: 1.6rem;
+    }
+
+    .topbar {
+        padding: 0 12px;
+        gap: 10px;
+    }
+
+    .topbar__date {
+        display: none;
+    }
+
+    .topbar__eyebrow {
+        font-size: 0.8rem;
+    }
+
+    .topbar__actions {
+        gap: 6px;
+    }
+
+    .page-header {
+        gap: 4px;
+    }
+
+    .page-title {
+        font-size: 1.4rem;
+    }
+
+    .card-toolbar {
+        padding: 12px;
+    }
+
+    .filter-form .form-input,
+    .filter-form .form-select {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .filter-form > * {
+        flex: 1 1 100%;
+    }
+
+    .filter-form .btn {
+        flex: 1 1 auto;
+    }
+
+    .dropbtn,
+    .dropdown-content {
+        position: static;
+        width: 100%;
+    }
+
+    .tab-link {
+        padding: 7px 12px;
+        font-size: 0.76rem;
+    }
+
+    .auth-panel {
+        padding: 18px 14px 30px;
+    }
+
+    .auth-card {
+        padding: 22px 18px;
+        border-radius: var(--radius-lg);
+    }
+
+    .auth-title {
+        font-size: 1.35rem;
+    }
+
+    .data-table {
+        font-size: 0.79rem;
+    }
+
+    .data-table thead th {
+        padding: 9px 11px;
+        font-size: 0.64rem;
+    }
+
+    .data-table tbody td {
+        padding: 10px 11px;
+    }
+
+    .table-responsive {
+        position: relative;
+    }
+
+    .badge {
+        font-size: 0.65rem;
+        padding: 2px 7px;
+    }
+}
+
+/* Coarse pointers: comfortable tap targets -------------------------------- */
+@media (pointer: coarse) {
+    .btn,
+    .icon-button,
+    .nav-item,
+    .tab-link {
+        min-height: 42px;
+    }
+
+    .btn--sm,
+    .btn--small {
+        min-height: 36px;
+    }
+
+    .action-dropdown > summary,
+    .row-actions > summary {
+        min-height: 36px;
+        display: inline-flex;
+        align-items: center;
+    }
+}

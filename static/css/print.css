@@ -1,0 +1,132 @@
+/* ==========================================================================
+   Print styles — borrowing slips and reports
+   ========================================================================== */
+
+@page {
+    margin: 14mm;
+}
+
+@media print {
+    :root {
+        --ink: #000;
+        --ink-soft: #1a1a1a;
+        --muted: #4a4a4a;
+    }
+
+    html,
+    body {
+        background: #fff !important;
+        font-size: 11pt;
+    }
+
+    .sidebar,
+    .sidebar-overlay,
+    .topbar,
+    .app-footer,
+    .toast-stack,
+    .skip-link,
+    .d-print-none,
+    .form-actions,
+    .pagination-nav,
+    .card-toolbar,
+    .tab-nav,
+    .btn {
+        display: none !important;
+    }
+
+    .app-main {
+        margin-left: 0 !important;
+    }
+
+    .content {
+        max-width: none !important;
+        padding: 0 !important;
+    }
+
+    .page-container {
+        gap: 12px;
+        animation: none;
+    }
+
+    .content-card {
+        border: 1px solid #999 !important;
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+
+    .card-body,
+    .card-header {
+        padding: 10px 14px !important;
+    }
+
+    .data-table {
+        font-size: 9.5pt;
+    }
+
+    .data-table thead th {
+        background: #eee !important;
+        color: #000 !important;
+        border-bottom: 1px solid #999 !important;
+    }
+
+    .data-table thead th,
+    .data-table tbody td {
+        padding: 6px 8px !important;
+    }
+
+    .data-table tbody tr {
+        break-inside: avoid;
+    }
+
+    .badge {
+        border: 1px solid #777 !important;
+        background: transparent !important;
+        color: #000 !important;
+        padding: 0 5px !important;
+        font-size: 8.5pt !important;
+    }
+
+    .badge::before {
+        display: none;
+    }
+
+    .borrowing-slip {
+        max-width: none;
+        padding: 0 !important;
+    }
+
+    .borrowing-slip .page-header {
+        margin-bottom: 16px !important;
+        padding-bottom: 10px !important;
+    }
+
+    .borrowing-slip .page-title {
+        font-size: 18pt;
+    }
+
+    .borrowing-slip .content-card {
+        border: 0 !important;
+    }
+
+    .borrowing-slip .card-body.p-5 {
+        padding: 0 !important;
+    }
+
+    .terms-box {
+        background: #f7f7f7 !important;
+        border: 1px solid #999 !important;
+    }
+
+    .signature-line {
+        break-inside: avoid;
+    }
+
+    .signature-line .border-top {
+        border-top: 1px solid #000 !important;
+        margin-top: 40px !important;
+    }
+
+    a[href]::after {
+        content: none !important;
+    }
+}
