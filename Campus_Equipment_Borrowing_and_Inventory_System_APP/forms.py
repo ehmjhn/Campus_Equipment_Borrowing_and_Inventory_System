@@ -18,12 +18,18 @@ class CatalogItemChoiceField(forms.ModelChoiceField):
 class BorrowRequestForm(forms.Form):
     purpose = forms.CharField(
         label="Purpose",
-        widget=forms.Textarea(attrs={"rows": 3}),
+        widget=forms.Textarea(
+            attrs={
+                "rows": 3,
+                "class": "form-textarea",
+                "placeholder": "Describe how the equipment will be used...",
+            }
+        ),
         max_length=2000,
     )
     return_date = forms.DateField(
         label="Requested return date",
-        widget=forms.DateInput(attrs={"type": "date"}),
+        widget=forms.DateInput(attrs={"type": "date", "class": "form-input"}),
     )
 
     def __init__(
@@ -43,12 +49,21 @@ class BorrowRequestForm(forms.Form):
                 required=position == 1,
                 label=f"Item {position}",
                 empty_label="Select equipment",
+                widget=forms.Select(attrs={"class": "form-select"}),
             )
             self.fields[f"quantity_{position}"] = forms.IntegerField(
                 required=False,
                 min_value=1,
                 max_value=max_quantity,
                 label="Quantity",
+                widget=forms.NumberInput(
+                    attrs={
+                        "class": "form-input",
+                        "min": 1,
+                        "max": max_quantity,
+                        "placeholder": "Qty",
+                    }
+                ),
             )
 
     def clean(self):
@@ -123,6 +138,15 @@ class UserProfileForm(forms.ModelForm):
         if user:
             self.fields['first_name'].initial = user.first_name
             self.fields['last_name'].initial = user.last_name
+        self.fields['first_name'].widget.attrs.update(
+            {"class": "form-input", "autocomplete": "given-name"}
+        )
+        self.fields['last_name'].widget.attrs.update(
+            {"class": "form-input", "autocomplete": "family-name"}
+        )
+        self.fields['contact_number'].widget.attrs.update(
+            {"class": "form-input", "autocomplete": "tel", "placeholder": "Optional contact number"}
+        )
 
 
 class RegisterForm(UserCreationForm):
@@ -141,6 +165,34 @@ class RegisterForm(UserCreationForm):
     class Meta:
         model = User
         fields = ("username", "first_name", "last_name", "email")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        placeholders = {
+            "username": "Choose a username",
+            "first_name": "First name",
+            "last_name": "Last name",
+            "email": "you@school.edu (optional)",
+            "contact_number": "Optional contact number",
+            "password1": "Create a password",
+            "password2": "Repeat the password",
+        }
+        autocomplete = {
+            "username": "username",
+            "first_name": "given-name",
+            "last_name": "family-name",
+            "email": "email",
+            "contact_number": "tel",
+            "password1": "new-password",
+            "password2": "new-password",
+        }
+        for name, field in self.fields.items():
+            attrs = {"class": "form-input"}
+            if name in placeholders:
+                attrs["placeholder"] = placeholders[name]
+            if name in autocomplete:
+                attrs["autocomplete"] = autocomplete[name]
+            field.widget.attrs.update(attrs)
 
     def save(self, commit=True):
         user = super().save(commit=False)

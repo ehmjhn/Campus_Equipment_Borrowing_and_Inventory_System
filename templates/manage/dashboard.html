@@ -4,45 +4,71 @@
 
 {% block admin_content %}
 <div class="page-container dashboard-page">
-    <header class="page-header">
-        <nav class="breadcrumb-nav" aria-label="Breadcrumb">
-            <span class="breadcrumb-current" aria-current="page">Dashboard</span>
-        </nav>
-        <h2 class="page-title">Dashboard</h2>
-        <p class="page-description">A live overview of equipment availability and borrowing activity.</p>
+    <header class="page-header d-flex-between">
+        <div>
+            <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+                <span class="breadcrumb-current" aria-current="page">Dashboard</span>
+            </nav>
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-description">A live overview of equipment availability and borrowing activity.</p>
+        </div>
+        <div class="report-actions">
+            <a class="btn btn--outline" href="{% url 'overdue_report' %}">
+                {% icon 'alert' %} Overdue Report
+            </a>
+            <a class="btn btn--success" href="{% url 'dashboard_report_csv' %}?date_from={{ date_from }}&amp;date_to={{ date_to }}">
+                {% icon 'download' %} Download CSV Report
+            </a>
+        </div>
     </header>
 
-    <section class="content-section mb-5" aria-labelledby="operational-metrics-heading">
+    <section aria-labelledby="operational-metrics-heading">
         <header class="section-header visually-hidden">
-            <h3 class="section-title" id="operational-metrics-heading">Live Operational Metrics</h3>
+            <h2 class="section-title" id="operational-metrics-heading">Live Operational Metrics</h2>
         </header>
 
-        <div class="data-grid data-grid--4-col">
-            <article class="content-card text-center p-4">
-                <h4 class="text-muted text-sm text-uppercase mb-2">Available Equipment</h4>
-                <p class="text-xl font-weight-bold text-success mb-0">{{ available_units }}</p>
+        <div class="kpi-grid">
+            <article class="kpi-card kpi-card--green">
+                <span class="kpi-card__icon" aria-hidden="true">{% icon 'check-circle' %}</span>
+                <div class="kpi-card__body">
+                    <h3 class="kpi-card__label">Available Equipment</h3>
+                    <p class="kpi-card__value">{{ available_units }}</p>
+                    <p class="kpi-card__meta">Units ready to borrow</p>
+                </div>
             </article>
 
-            <article class="content-card text-center p-4">
-                <h4 class="text-muted text-sm text-uppercase mb-2">Pending Requests</h4>
-                <p class="text-xl font-weight-bold text-warning mb-0">{{ pending_requests }}</p>
+            <article class="kpi-card kpi-card--amber">
+                <span class="kpi-card__icon" aria-hidden="true">{% icon 'clock' %}</span>
+                <div class="kpi-card__body">
+                    <h3 class="kpi-card__label">Pending Requests</h3>
+                    <p class="kpi-card__value">{{ pending_requests }}</p>
+                    <p class="kpi-card__meta">Awaiting review</p>
+                </div>
             </article>
 
-            <article class="content-card text-center p-4">
-                <h4 class="text-muted text-sm text-uppercase mb-2">Active Loans</h4>
-                <p class="text-xl font-weight-bold text-primary mb-0">{{ active_loans }}</p>
+            <article class="kpi-card kpi-card--blue">
+                <span class="kpi-card__icon" aria-hidden="true">{% icon 'package' %}</span>
+                <div class="kpi-card__body">
+                    <h3 class="kpi-card__label">Active Loans</h3>
+                    <p class="kpi-card__value">{{ active_loans }}</p>
+                    <p class="kpi-card__meta">Currently issued</p>
+                </div>
             </article>
 
-            <article class="content-card text-center p-4">
-                <h4 class="text-muted text-sm text-uppercase mb-2">Overdue Loans</h4>
-                <p class="text-xl font-weight-bold text-danger mb-0">{{ overdue_loans }}</p>
+            <article class="kpi-card kpi-card--red">
+                <span class="kpi-card__icon" aria-hidden="true">{% icon 'alert' %}</span>
+                <div class="kpi-card__body">
+                    <h3 class="kpi-card__label">Overdue Loans</h3>
+                    <p class="kpi-card__value">{{ overdue_loans }}</p>
+                    <p class="kpi-card__meta">Past the due date</p>
+                </div>
             </article>
         </div>
     </section>
 
     <section class="content-section" aria-labelledby="reports-heading">
         <header class="section-header">
-            <h3 class="section-title" id="reports-heading">Issued Equipment Reports</h3>
+            <h2 class="section-title" id="reports-heading">Issued Equipment Reports</h2>
             <p class="section-description">Charts and exports use live loan and physical-unit allocation records.</p>
         </header>
 
@@ -64,33 +90,26 @@
                         {% endif %}
                     </div>
                 </div>
-                <div class="d-flex-gap">
-                    <a class="btn btn--outline" href="{% url 'overdue_report' %}">Overdue Report</a>
-                    <a class="btn btn--success" href="{% url 'dashboard_report_csv' %}?date_from={{ date_from }}&amp;date_to={{ date_to }}">
-                        Download CSV Report
-                    </a>
-                </div>
             </form>
         </div>
 
         <div class="grid-layout">
-            <!-- Monthly Issued Loans Chart -->
             <article class="content-card">
                 <header class="card-header">
-                    <h4 class="card-title text-md" id="monthly-issued-heading">Monthly Issued Loans</h4>
+                    <h3 class="card-title" id="monthly-issued-heading">Monthly Issued Loans</h3>
+                    <p class="card-description">Loans released per month for the selected range.</p>
                 </header>
                 <div class="card-body">
                     {% if monthly_issued %}
-                        <ol class="chart-list list-unstyled mb-0" style="padding-left: 0;" role="img"
-                            aria-label="Monthly issued loans bar chart: {% for row in monthly_issued %}{{ row.month|date:'F Y' }} {{ row.count }} loans{% if not forloop.last %}, {% endif %}{% endfor %}">
+                        <ol class="chart-list" role="list" aria-label="Monthly issued loans">
                             {% for row in monthly_issued %}
-                                <li style="margin-bottom: 1.25rem;">
-                                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.35rem;">
-                                        <span style="font-size: 0.875rem; font-weight: 500; color: #374151;">{{ row.month|date:"F Y" }}</span>
-                                        <strong style="font-size: 0.875rem; color: #111827;">{{ row.count }} <span style="font-size: 0.75rem; font-weight: normal; color: #6b7280;">loans</span></strong>
+                                <li>
+                                    <div class="chart-list__label">
+                                        <span>{{ row.month|date:"F Y" }}</span>
+                                        <span class="chart-list__value">{{ row.count }} <small>loans</small></span>
                                     </div>
-                                    <div style="height: 0.75rem; background-color: #f3f4f6; border-radius: 9999px; overflow: hidden;">
-                                        <div style="height: 100%; background-color: #3b82f6; border-radius: 9999px; width: {% widthratio row.count max_monthly_issued 100 %}%;"></div>
+                                    <div class="chart-track">
+                                        <div class="chart-fill" style="width: {% widthratio row.count max_monthly_issued 100 %}%;"></div>
                                     </div>
                                 </li>
                             {% endfor %}
@@ -101,25 +120,22 @@
                 </div>
             </article>
 
-            <!-- Category Usage Chart -->
             <article class="content-card">
                 <header class="card-header">
-                    <h4 class="card-title text-md" id="category-usage-heading">Category Usage (Units Issued)</h4>
+                    <h3 class="card-title" id="category-usage-heading">Category Usage (Units Issued)</h3>
+                    <p class="card-description">Which equipment categories are borrowed most.</p>
                 </header>
                 <div class="card-body">
                     {% if category_usage %}
-                        <ol class="chart-list list-unstyled mb-0" style="padding-left: 0;" role="img"
-                            aria-label="Category usage bar chart: {% for row in category_usage %}{{ row.request_item__catalog_item__category__name }} {{ row.count }} units{% if not forloop.last %}, {% endif %}{% endfor %}">
+                        <ol class="chart-list" role="list" aria-label="Category usage">
                             {% for row in category_usage %}
-                                <li style="margin-bottom: 1.25rem;">
-                                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.35rem;">
-                                        <span style="font-size: 0.875rem; font-weight: 500; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 10px;" title="{{ row.request_item__catalog_item__category__name }}">
-                                            {{ row.request_item__catalog_item__category__name }}
-                                        </span>
-                                        <strong style="font-size: 0.875rem; color: #111827;">{{ row.count }} <span style="font-size: 0.75rem; font-weight: normal; color: #6b7280;">units</span></strong>
+                                <li>
+                                    <div class="chart-list__label">
+                                        <span title="{{ row.request_item__catalog_item__category__name }}">{{ row.request_item__catalog_item__category__name }}</span>
+                                        <span class="chart-list__value">{{ row.count }} <small>units</small></span>
                                     </div>
-                                    <div style="height: 0.75rem; background-color: #f3f4f6; border-radius: 9999px; overflow: hidden;">
-                                        <div style="height: 100%; background-color: #3b82f6; border-radius: 9999px; width: {% widthratio row.count max_category_usage 100 %}%;"></div>
+                                    <div class="chart-track">
+                                        <div class="chart-fill" style="width: {% widthratio row.count max_category_usage 100 %}%;"></div>
                                     </div>
                                 </li>
                             {% endfor %}
@@ -134,14 +150,12 @@
 
     <section class="content-section" aria-labelledby="loan-report-heading">
         <header class="section-header">
-            <h3 class="section-title" id="loan-report-heading">Loan Report</h3>
-            <p class="section-description">
-                Most recent 50 loans that match the date range above.
-            </p>
+            <h2 class="section-title" id="loan-report-heading">Loan Report</h2>
+            <p class="section-description">Most recent 50 loans that match the date range above.</p>
         </header>
 
         <div class="content-card">
-            <div class="table-responsive">
+            <div tabindex="0" class="table-responsive">
                 <table class="data-table">
                     <thead>
                         <tr>

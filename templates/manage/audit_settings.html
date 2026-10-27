@@ -10,13 +10,13 @@
             <span class="breadcrumb-separator" aria-hidden="true">/</span>
             <span class="breadcrumb-current" aria-current="page">Audit &amp; Settings</span>
         </nav>
-        <h2 class="page-title">Audit &amp; Settings</h2>
+        <h1 class="page-title">Audit &amp; Settings</h1>
         <p class="page-description">Review recorded administrative activity and configure system borrowing limits.</p>
     </header>
 
     <section class="content-card form-section mb-5" aria-labelledby="system-settings-heading">
         <header class="card-header">
-            <h3 class="card-title" id="system-settings-heading">System Settings</h3>
+            <h2 class="card-title" id="system-settings-heading">System Settings</h2>
             <p class="card-description">Configure the global borrowing limits for basic users.</p>
         </header>
         <div class="card-body">
@@ -39,7 +39,7 @@
 
     <section class="content-section" aria-labelledby="audit-log-heading">
         <header class="section-header">
-            <h3 class="section-title" id="audit-log-heading">System Audit Log</h3>
+            <h2 class="section-title" id="audit-log-heading">System Audit Log</h2>
             <p class="section-description">Actor, timestamp, action, and details for recorded system operations.</p>
         </header>
 
@@ -66,7 +66,7 @@
             </form>
         </div>
 
-        <div class="table-responsive content-card">
+        <div tabindex="0" class="table-responsive content-card">
             <table class="data-table">
                 <thead>
                     <tr>
@@ -91,23 +91,7 @@
             </table>
         </div>
 
-        {% if page_obj.paginator.num_pages > 1 %}
-            <nav class="pagination-nav mt-4 text-center" aria-label="Audit log pages">
-                {% if page_obj.has_previous %}
-                    <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&amp;date_from={{ date_from }}&amp;date_to={{ date_to }}&amp;page={{ page_obj.previous_page_number }}">Previous</a>
-                {% else %}
-                    <button class="btn btn--outline" disabled>Previous</button>
-                {% endif %}
-
-                <span class="pagination-info mx-3">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-
-                {% if page_obj.has_next %}
-                    <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&amp;date_from={{ date_from }}&amp;date_to={{ date_to }}&amp;page={{ page_obj.next_page_number }}">Next</a>
-                {% else %}
-                    <button class="btn btn--outline" disabled>Next</button>
-                {% endif %}
-            </nav>
-        {% endif %}
+        {% include "partials/_pagination.html" with label="Audit log pages" %}
     </section>
 </div>
 {% endblock %}

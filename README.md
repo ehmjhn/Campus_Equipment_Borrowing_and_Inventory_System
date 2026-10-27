@@ -2,7 +2,7 @@
 
 **Course:** IT 401W Web Programming and Frameworks
 **Project:** Final Project A
-**Stack:** Python 3.12, Django 6.1.2, Django ORM, server-rendered templates, Bootstrap 5 (CDN), SQLite
+**Stack:** Python 3.12, Django 6.1.2, Django ORM, server-rendered templates, Bootstrap 5.3.3 (vendored), SQLite
 
 A Django application where campus users request equipment while administrators manage
 inventory, approvals, releases, returns, maintenance, and operational reports. Every
@@ -179,10 +179,16 @@ Pending ──► Approved ──► Issued ──► Partially Returned ──�
 ├── README.md
 ├── docs/                                  # written documentation and defense evidence
 ├── templates/
-│   ├── base.html                          # Bootstrap CDN + shared shell
+│   ├── base.html                          # shared shell, local Bootstrap, CSS/JS layers
+│   ├── partials/                          # messages, pagination, empty states, icon sprite
 │   ├── registration/                      # login and registration
 │   ├── portal/                            # basic-user screens
 │   └── manage/                            # custom admin screens
+├── static/
+│   ├── vendor/bootstrap.min.css           # Bootstrap 5.3.3, served locally
+│   ├── css/                               # base, layout, components, pages, responsive, print
+│   ├── js/app.js                          # optional progressive enhancement
+│   └── img/favicon.svg
 ├── campus_equipment_borrowing_and_inventory_system/
 │   ├── settings.py
 │   └── urls.py
@@ -190,6 +196,7 @@ Pending ──► Approved ──► Issued ──► Partially Returned ──�
     ├── models.py                          # 11 entities and constraints
     ├── forms.py                           # request, profile, registration forms
     ├── views.py                           # all admin and portal logic
+    ├── templatetags/ui.py                 # {% icon %} inline-SVG tag
     ├── signals.py                         # profile auto-creation
     ├── migrations/
     ├── management/commands/seed.py        # reproducible demo dataset

@@ -10,7 +10,7 @@
             <span class="breadcrumb-separator" aria-hidden="true">/</span>
             <span class="breadcrumb-current" aria-current="page">Returns and Overdue</span>
         </nav>
-        <h2 class="page-title">Returns and Overdue Monitoring</h2>
+        <h1 class="page-title">Returns and Overdue Monitoring</h1>
         <p class="page-description">Record each physical unit separately. A loan closes only after every issued unit is returned.</p>
     </header>
 
@@ -28,7 +28,7 @@
         {% for row in loan_rows %}
             <article class="content-card mb-4">
                 <header class="card-header d-flex-between">
-                    <h3 class="card-title">Loan #{{ row.loan.id }} · Request #{{ row.loan.request_id }}</h3>
+                    <h2 class="card-title">Loan #{{ row.loan.id }} · Request #{{ row.loan.request_id }}</h2>
                     <span class="badge {% if row.is_overdue %}badge--danger{% else %}badge--neutral{% endif %}">
                         {% if row.is_overdue %}Overdue · {{ row.overdue_days }} day(s){% else %}{{ row.loan.request.status }}{% endif %}
                     </span>
@@ -55,7 +55,7 @@
                         </div>
                     </div>
 
-                    <div class="table-responsive mt-4">
+                    <div tabindex="0" class="table-responsive mt-4">
                         <table class="data-table">
                             <thead>
                                 <tr>
@@ -100,7 +100,7 @@
                                                         <label class="form-label visually-hidden" for="notes-{{ row.loan.id }}-{{ unit_row.unit.id }}">Condition notes</label>
                                                         <textarea class="form-textarea" id="notes-{{ row.loan.id }}-{{ unit_row.unit.id }}" name="condition_notes" rows="1" maxlength="1000" placeholder="Optional notes"></textarea>
                                                     </div>
-                                                    <button class="btn btn--primary btn--sm mt-2 w-100" type="submit" onclick="return confirm('Record the return of this asset?');">Record Return</button>
+                                                    <button class="btn btn--primary btn--sm mt-2 w-100" type="submit" data-confirm="Record the return of this asset?">Record Return</button>
                                                 </form>
                                             {% elif unit_row.return_record %}
                                                 <span class="text-success">Return recorded</span>
@@ -122,22 +122,6 @@
         {% endfor %}
     </section>
 
-    {% if page_obj.paginator.num_pages > 1 %}
-        <nav class="pagination-nav mt-4 text-center" aria-label="Loan pages">
-            {% if page_obj.has_previous %}
-                <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page={{ page_obj.previous_page_number }}">Previous</a>
-            {% else %}
-                <button class="btn btn--outline" disabled>Previous</button>
-            {% endif %}
-
-            <span class="pagination-info mx-3">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-
-            {% if page_obj.has_next %}
-                <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page={{ page_obj.next_page_number }}">Next</a>
-            {% else %}
-                <button class="btn btn--outline" disabled>Next</button>
-            {% endif %}
-        </nav>
-    {% endif %}
+    {% include "partials/_pagination.html" with label="Loan pages" %}
 </div>
 {% endblock %}

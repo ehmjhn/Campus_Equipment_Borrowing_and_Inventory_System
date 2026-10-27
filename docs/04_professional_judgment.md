@@ -88,8 +88,10 @@ admins.
 ## 6. Accessibility, bias, and public welfare
 
 - **Accessibility:** tables have header cells, form controls have labels, navigation has
-  breadcrumbs, and status badges always include text so meaning does not depend on
-  colour. Layout classes are responsive through Bootstrap.
+  breadcrumbs and a skip link, and every page has one `h1` with an ordered heading
+  outline. Status badges always include text so meaning does not depend on colour,
+  focus is visible, menus and dialogs are keyboard-operable, and layouts reflow from
+  desktop to mobile widths.
 - **Bias:** approval is based on recorded quantities and availability, not on an
   opaque score. The reviewer sees the same inventory data for every requester.
 - **Public welfare:** damaged units are removed from circulation, reducing the risk of
@@ -120,9 +122,10 @@ admins.
   views are present but email is not configured.
 - Audit logs are append-only by convention; there is no database-level trigger that
   blocks edits by a database administrator.
-- Bootstrap is loaded from a CDN, so the demo needs network access for styling.
-- The evidence folder contains seeded screenshots of all principal screens, so a
-  network failure during the defense does not hide the implemented UI.
+- The interface is light-theme only and intentionally avoids a client-side framework or
+  build step; interactivity is progressive enhancement over working HTML.
+- The evidence folder contains seeded screenshots of all principal screens, so an
+  unexpected display issue during the defense does not hide the implemented UI.
 
 ## 9. Incident record
 

@@ -4,88 +4,104 @@
 
 {% block portal_content %}
 <div class="page-container equipment-catalog">
-    <header class="page-header">
-        <nav class="breadcrumb-nav" aria-label="Breadcrumb">
-            <span class="breadcrumb-current" aria-current="page">Browse Equipment</span>
-        </nav>
-        <h2 class="page-title">Browse Equipment</h2>
-        <p class="page-description">Search the active catalog and check how many units are available right now.</p>
+    <header class="page-header d-flex-between">
+        <div>
+            <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+                <span class="breadcrumb-current" aria-current="page">Browse Equipment</span>
+            </nav>
+            <h1 class="page-title">Browse Equipment</h1>
+            <p class="page-description">Search the active catalog and check how many units are available right now.</p>
+        </div>
+        <a class="btn btn--primary" href="{% url 'borrow_request_create' %}">
+            {% icon 'plus' %} New Request
+        </a>
     </header>
 
     <section class="content-card" aria-labelledby="catalog-search-heading">
         <header class="card-header">
-            <h3 class="card-title" id="catalog-search-heading">Search Catalog</h3>
+            <h2 class="card-title" id="catalog-search-heading">Search Catalog</h2>
         </header>
-        <form class="filter-form" method="get" action="{% url 'browse_catalog' %}" role="search">
-            <div class="form-group">
-                <label class="form-label" for="catalog-search">Item, category, or description</label>
-                <input class="form-input" type="search" id="catalog-search" name="q" value="{{ search_query }}" placeholder="e.g. projector">
-            </div>
-            <div class="form-actions">
-                <button class="btn btn--primary" type="submit">Search</button>
-                {% if search_query %}
-                    <a class="btn btn--link" href="{% url 'browse_catalog' %}">Clear search</a>
-                {% endif %}
-            </div>
-        </form>
+        <div class="card-body">
+            <form class="catalog-toolbar" method="get" action="{% url 'browse_catalog' %}" role="search">
+                <div class="form-group">
+                    <label class="form-label" for="catalog-search">Item, category, or description</label>
+                    <input class="form-input form-input--search" type="search" id="catalog-search" name="q" value="{{ search_query }}" placeholder="e.g. projector">
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn--primary" type="submit">{% icon 'search' %} Search</button>
+                    {% if search_query %}
+                        <a class="btn btn--link" href="{% url 'browse_catalog' %}">Clear search</a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
     </section>
 
-    <section class="content-card" aria-labelledby="catalog-results-heading">
-        <header class="card-header">
-            <h3 class="card-title" id="catalog-results-heading">Available Equipment</h3>
-            {% if search_query %}
-                <p class="card-description">Results for &ldquo;{{ search_query }}&rdquo;.</p>
-            {% endif %}
+    <section aria-labelledby="catalog-results-heading">
+        <header class="section-header d-flex-between">
+            <div>
+                <h2 class="section-title" id="catalog-results-heading">Available Equipment</h2>
+                {% if search_query %}
+                    <p class="section-description">Results for &ldquo;{{ search_query }}&rdquo;.</p>
+                {% else %}
+                    <p class="section-description">Every active equipment type you can request today.</p>
+                {% endif %}
+            </div>
+            <span class="badge badge--neutral">{{ items|length }} item(s)</span>
         </header>
 
-        <div class="table-responsive">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th scope="col">Item</th>
-                        <th scope="col">Category</th>
-                        <th scope="col">Description</th>
-                        <th scope="col">Availability</th>
-                        <th scope="col">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in items %}
-                        <tr>
-                            <td data-label="Item"><strong>{{ item.name }}</strong></td>
-                            <td data-label="Category">{{ item.category.name }}</td>
-                            <td data-label="Description">{{ item.description|default:"No description provided." }}</td>
-                            <td data-label="Availability">
-                                <strong>Total serviceable:</strong> {{ item.serviceable_quantity }}
-                                <span class="text-muted text-sm">(not retired or under maintenance)</span>
-                                <br>
-                                <strong>Available now:</strong> {{ item.available_quantity }}
-                                {% if not item.available_quantity %}
-                                    <span class="badge badge--maintenance">Fully booked</span>
-                                {% endif %}
-                            </td>
-                            <td data-label="Action">
-                                {% if item.available_quantity %}
-                                    <a class="btn btn--primary btn--small" href="{% url 'borrow_request_create' %}?item={{ item.pk }}">Request</a>
-                                {% else %}
-                                    <span class="text-muted">Unavailable</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% empty %}
-                        <tr>
-                            <td colspan="5" class="text-center text-muted">
-                                {% if search_query %}
-                                    No active equipment matches &ldquo;{{ search_query }}&rdquo;.
-                                {% else %}
-                                    No active equipment is available for borrowing.
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        {% url 'browse_catalog' as catalog_url %}
+        {% if items %}
+            <div class="catalog-grid">
+                {% for item in items %}
+                    <article class="catalog-card">
+                        <div class="catalog-card__head">
+                            <div>
+                                <h3 class="catalog-card__title">{{ item.name }}</h3>
+                                <p class="catalog-card__category">{% icon 'book' %} {{ item.category.name }}</p>
+                            </div>
+                            {% if not item.available_quantity %}
+                                <span class="badge badge--maintenance">Fully booked</span>
+                            {% endif %}
+                        </div>
+
+                        <p class="catalog-card__description">{{ item.description|default:"No description provided." }}</p>
+
+                        <div class="catalog-card__stats">
+                            <div class="catalog-stat">
+                                <span class="catalog-stat__label">Availability</span>
+                                <p class="availability-line">
+                                    <strong>Available now:</strong> {{ item.available_quantity }}
+                                </p>
+                            </div>
+                            <div class="catalog-stat">
+                                <span class="catalog-stat__label">Inventory</span>
+                                <p class="availability-line">
+                                    <strong>Total serviceable:</strong> {{ item.serviceable_quantity }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="catalog-card__foot">
+                            <span class="catalog-card__note">Not retired or under maintenance</span>
+                            {% if item.available_quantity %}
+                                <a class="btn btn--primary btn--sm" href="{% url 'borrow_request_create' %}?item={{ item.pk }}" aria-label="Request {{ item.name }}">Request</a>
+                            {% else %}
+                                <span class="text-muted text-sm">Unavailable</span>
+                            {% endif %}
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="content-card catalog-empty">
+                {% if search_query %}
+                    {% include "partials/_empty_state.html" with icon_name="search" title="No matching equipment" text="Nothing in the active catalog matches your search. Try a different term." action_url=catalog_url %}
+                {% else %}
+                    {% include "partials/_empty_state.html" with icon_name="inbox" title="Catalog is empty" text="No active equipment is available for borrowing right now." %}
+                {% endif %}
+            </div>
+        {% endif %}
     </section>
 </div>
 {% endblock %}

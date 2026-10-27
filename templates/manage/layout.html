@@ -3,64 +3,134 @@
 {% block title %}{% block page_title %}System Administration{% endblock %} | Campus Equipment System{% endblock %}
 
 {% block main_layout %}
-<div class="admin-layout">
-    <header class="admin-header">
-        <div class="admin-header__brand">
-            <h1 class="admin-header__title">Campus Equipment Borrowing and Inventory System</h1>
+<div class="app-shell">
+    <aside class="sidebar" id="app-sidebar" aria-label="Administration navigation">
+        <div class="sidebar__brand">
+            <a class="brand" href="{% url 'admin_dashboard' %}">
+                <span class="brand__mark" aria-hidden="true">{% icon 'package' %}</span>
+                <span class="brand__text">
+                    <strong>Campus</strong>
+                    <small>Equipment System</small>
+                </span>
+            </a>
+            <button class="icon-button sidebar__close" type="button" data-nav-close aria-label="Close navigation">
+                {% icon 'x' %}
+            </button>
         </div>
-        <div class="admin-header__user">
-            <span class="admin-header__user-label">Admin:</span>
-            <strong class="admin-header__username">{{ request.user.username }}</strong>
-            <form class="inline-form" method="post" action="{% url 'logout' %}">
+
+        <div class="sidebar__role">
+            <span class="role-pill"><span class="role-pill__dot"></span>Admin workspace</span>
+        </div>
+
+        <nav class="sidebar__nav" aria-label="Main administration navigation">
+            <p class="nav-group__label">Overview</p>
+            <a class="nav-item {% if request.resolver_match.url_name == 'admin_dashboard' %}is-active{% endif %}"
+               href="{% url 'admin_dashboard' %}" {% if request.resolver_match.url_name == 'admin_dashboard' %}aria-current="page"{% endif %}>
+                {% icon 'dashboard' %}<span>Dashboard</span>
+            </a>
+            <a class="nav-item {% if request.resolver_match.url_name == 'account_management' or request.resolver_match.url_name == 'account_detail' %}is-active{% endif %}"
+               href="{% url 'account_management' %}" {% if request.resolver_match.url_name == 'account_management' or request.resolver_match.url_name == 'account_detail' %}aria-current="page"{% endif %}>
+                {% icon 'users' %}<span>Accounts</span>
+            </a>
+
+            <p class="nav-group__label">Equipment</p>
+            <a class="nav-item {% if request.resolver_match.url_name in 'category_management,catalog_item_management,physical_units_management,category_create,category_edit,catalog_item_create,catalog_item_edit,equipment_unit_create,equipment_unit_update' %}is-active{% endif %}"
+               href="{% url 'category_management' %}" {% if request.resolver_match.url_name in 'category_management,catalog_item_management,physical_units_management,category_create,category_edit,catalog_item_create,catalog_item_edit,equipment_unit_create,equipment_unit_update' %}aria-current="page"{% endif %}>
+                {% icon 'package' %}<span>Equipment Catalog</span>
+            </a>
+
+            <p class="nav-group__label">Operations</p>
+            <a class="nav-item {% if request.resolver_match.url_name in 'request_review,request_approve,request_reject' %}is-active{% endif %}"
+               href="{% url 'request_review' %}" {% if request.resolver_match.url_name in 'request_review,request_approve,request_reject' %}aria-current="page"{% endif %}>
+                {% icon 'clipboard' %}<span>Request Review</span>
+            </a>
+            <a class="nav-item {% if request.resolver_match.url_name in 'release_management,issue_approved_request,revise_approved_due_date,borrowing_slip' %}is-active{% endif %}"
+               href="{% url 'release_management' %}" {% if request.resolver_match.url_name in 'release_management,issue_approved_request,revise_approved_due_date,borrowing_slip' %}aria-current="page"{% endif %}>
+                {% icon 'send' %}<span>Release Assets</span>
+            </a>
+            <a class="nav-item {% if request.resolver_match.url_name in 'return_management,record_unit_return' %}is-active{% endif %}"
+               href="{% url 'return_management' %}" {% if request.resolver_match.url_name in 'return_management,record_unit_return' %}aria-current="page"{% endif %}>
+                {% icon 'return' %}<span>Returns &amp; Overdue</span>
+            </a>
+
+            <p class="nav-group__label">Oversight</p>
+            <a class="nav-item {% if request.resolver_match.url_name in 'maintenance_management,open_maintenance_record,close_maintenance_record' %}is-active{% endif %}"
+               href="{% url 'maintenance_management' %}" {% if request.resolver_match.url_name in 'maintenance_management,open_maintenance_record,close_maintenance_record' %}aria-current="page"{% endif %}>
+                {% icon 'wrench' %}<span>Maintenance</span>
+            </a>
+            <a class="nav-item {% if request.resolver_match.url_name == 'overdue_report' %}is-active{% endif %}"
+               href="{% url 'overdue_report' %}" {% if request.resolver_match.url_name == 'overdue_report' %}aria-current="page"{% endif %}>
+                {% icon 'chart' %}<span>Overdue Report</span>
+            </a>
+            <a class="nav-item {% if request.resolver_match.url_name == 'audit_settings_management' %}is-active{% endif %}"
+               href="{% url 'audit_settings_management' %}" {% if request.resolver_match.url_name == 'audit_settings_management' %}aria-current="page"{% endif %}>
+                {% icon 'shield' %}<span>Audit &amp; Settings</span>
+            </a>
+        </nav>
+
+        <div class="sidebar__footer">
+            <div class="sidebar__user">
+                <span class="avatar">{{ request.user.username|first|upper }}</span>
+                <span class="sidebar__user-meta">
+                    <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+                    <small>Administrator</small>
+                </span>
+            </div>
+            <form method="post" action="{% url 'logout' %}">
                 {% csrf_token %}
-                <button class="btn btn--link" type="submit">Sign out</button>
+                <button class="btn btn--ghost-light btn--block btn--sm" type="submit">
+                    {% icon 'logout' %} Sign out
+                </button>
             </form>
         </div>
-    </header>
+    </aside>
 
-    <div class="admin-body">
-        <aside class="admin-sidebar">
-            <nav class="admin-nav" aria-label="Main administration navigation">
-                <ul class="admin-nav__list">
-                    <li class="admin-nav__item">
-                        <a class="admin-nav__link {% if request.resolver_match.url_name == 'admin_dashboard' %}is-active{% endif %}" href="{% url 'admin_dashboard' %}">Dashboard</a>
-                    </li>
-                    <li class="admin-nav__item">
-                        <a class="admin-nav__link {% if request.resolver_match.url_name == 'account_management' %}is-active{% endif %}" href="{% url 'account_management' %}">Accounts</a>
-                    </li>
-                    <li class="admin-nav__item">
-                        <a class="admin-nav__link {% if request.resolver_match.url_name in 'category_management,catalog_item_management,physical_units_management' %}is-active{% endif %}" href="{% url 'category_management' %}">Equipment Catalog</a>
-                    </li>
-                    <li class="admin-nav__item">
-                        <a class="admin-nav__link {% if request.resolver_match.url_name in 'request_review,request_approve,request_reject' %}is-active{% endif %}" href="{% url 'request_review' %}">Request Review</a>
-                    </li>
-                    <li class="admin-nav__item">
-                        <a class="admin-nav__link {% if request.resolver_match.url_name in 'release_management,issue_approved_request,revise_approved_due_date,borrowing_slip' %}is-active{% endif %}" href="{% url 'release_management' %}">Release Assets</a>
-                    </li>
-                    <li class="admin-nav__item">
-                        <a class="admin-nav__link {% if request.resolver_match.url_name in 'return_management,record_unit_return' %}is-active{% endif %}" href="{% url 'return_management' %}">Returns &amp; Overdue</a>
-                    </li>
-                    <li class="admin-nav__item">
-                        <a class="admin-nav__link {% if request.resolver_match.url_name in 'maintenance_management,open_maintenance_record,close_maintenance_record' %}is-active{% endif %}" href="{% url 'maintenance_management' %}">Maintenance</a>
-                    </li>
-                    <li class="admin-nav__item">
-                        <a class="admin-nav__link {% if request.resolver_match.url_name == 'audit_settings_management' %}is-active{% endif %}" href="{% url 'audit_settings_management' %}">Audit &amp; Settings</a>
-                    </li>
-                </ul>
-            </nav>
-        </aside>
+    <button class="sidebar-overlay" type="button" data-nav-overlay aria-label="Close navigation" hidden></button>
 
-        <main class="admin-content" id="main-content">
-            {% if messages %}
-                <section class="notification-area" aria-label="Notifications" aria-live="polite">
-                    {% for message in messages %}
-                        <div class="alert alert--{{ message.tags|default:'info' }}" role="status">{{ message }}</div>
-                    {% endfor %}
-                </section>
-            {% endif %}
+    <div class="app-main">
+        <header class="topbar">
+            <button class="icon-button topbar__menu" type="button" data-nav-toggle aria-controls="app-sidebar" aria-expanded="false" aria-label="Open navigation">
+                {% icon 'menu' %}
+            </button>
+            <div class="topbar__context">
+                <span class="topbar__eyebrow">Administration</span>
+                <span class="topbar__date">{% now "l, F j, Y" %}</span>
+            </div>
+            <div class="topbar__actions">
+                <a class="btn btn--outline btn--sm topbar__action" href="{% url 'overdue_report' %}" aria-label="View overdue report">
+                    {% icon 'alert' %}<span>Overdue</span>
+                </a>
+                <details class="user-menu">
+                    <summary class="user-menu__trigger" aria-label="Account menu">
+                        <span class="avatar avatar--sm">{{ request.user.username|first|upper }}</span>
+                        <span class="user-menu__meta">
+                            <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+                            <small>Administrator</small>
+                        </span>
+                        {% icon 'chevron-down' %}
+                    </summary>
+                    <div class="user-menu__panel">
+                        <p class="user-menu__heading">Signed in as <strong>{{ request.user.username }}</strong></p>
+                        <a class="user-menu__item" href="{% url 'admin_dashboard' %}">{% icon 'dashboard' %} Dashboard</a>
+                        <a class="user-menu__item" href="{% url 'audit_settings_management' %}">{% icon 'settings' %} System settings</a>
+                        <form method="post" action="{% url 'logout' %}">
+                            {% csrf_token %}
+                            <button class="user-menu__item user-menu__item--danger" type="submit">{% icon 'logout' %} Sign out</button>
+                        </form>
+                    </div>
+                </details>
+            </div>
+        </header>
 
+        <main class="content" id="main-content">
+            {% include "partials/_messages.html" %}
             {% block admin_content %}{% endblock %}
         </main>
+
+        <footer class="app-footer">
+            <span>Campus Equipment Borrowing and Inventory System</span>
+            <span>IT 401W &middot; BSIT 4F-G1</span>
+        </footer>
     </div>
 </div>
 {% endblock %}

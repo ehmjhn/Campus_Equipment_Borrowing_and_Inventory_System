@@ -25,12 +25,13 @@ flowchart LR
     Dev[Student laptop] -->|runserver 127.0.0.1:8000| Django[Django development server]
     Django --> SQLite[(db.sqlite3<br/>not committed)]
     Browser[Browser] -->|localhost HTTP| Django
-    Browser -->|CDN| Bootstrap[Bootstrap 5 CSS]
+    Django -->|serves /static/| Assets[Vendored Bootstrap 5.3.3<br/>custom CSS and JS]
 ```
 
 - **Model:** 11 application entities plus Django's `User`.
-- **Template:** server-rendered HTML with Bootstrap 5 via CDN. This repository owns
-  HTML structure and existing class names; visual styling is the design member's work.
+- **Template:** server-rendered HTML with a locally vendored Bootstrap 5.3.3, a layered
+  custom stylesheet, shared partials, and a small progressive-enhancement script. The
+  interface has no build step and no runtime CDN dependency.
 - **View:** function-based views; workflows follow POST + redirect + messages.
 - **Routing:** one project URLConf grouped by requirement area.
 - **Configuration:** `SECRET_KEY`, `DEBUG`, and `ALLOWED_HOSTS` come from environment
@@ -193,8 +194,14 @@ base.html
     └── manage/audit_settings.html
 ```
 
-`manage/operations_layout.html` is an alternative shell used by the operations
-screens while keeping the same base navigation and class names.
+`manage/layout.html` is the single administrative shell. Shared building blocks live
+in `templates/partials/` (flash messages, pagination, empty states, and the icon
+sprite), and the `{% icon %}` template tag renders accessible inline SVG icons from
+that sprite. Both role shells share `base.html`, which loads the local Bootstrap
+build, the CSS layers in `static/css/` (base, layout, components, pages, responsive,
+print), and a deferred `static/js/app.js`. The script is optional progressive
+enhancement: mobile navigation, confirmation dialogs, toasts, password reveal, status
+filters, and disclosure menus all degrade to working HTML without it.
 
 ## 7. Design decisions
 
@@ -216,8 +223,10 @@ screens while keeping the same base navigation and class names.
   number only. Seed data uses fictional identities.
 - **Security:** Django authentication hashes passwords; CSRF middleware protects
   forms; ORM parameterisation prevents SQL injection; template escaping prevents XSS.
-- **Accessibility:** semantic tables, labels, breadcrumb navigation, text statuses, and
-  responsive layout classes are used. Bootstrap is the only styling dependency.
+- **Accessibility:** semantic landmarks, tables, and labels; one `h1` per page with an
+  ordered heading outline; visible focus styles; breadcrumb navigation; text statuses;
+  skip link; keyboard-operable menus and dialogs; and responsive layouts. Styling is
+  served locally and needs no network access.
 - **Intellectual property:** the application uses Django and Bootstrap under their
   published licences; no copied proprietary code is included.
 - **AI assistance:** used only as a development aid for review and documentation and
@@ -229,7 +238,7 @@ Limitations:
 
 - SQLite serialises writes; the locking code is written for a production database but
   is not load-tested.
-- Bootstrap is loaded from a CDN, so styling requires network access.
+- The interface is light-theme only and uses no client-side framework or build step.
 - No email verification, password-reset delivery, or background notification service.
 - Audit rows are append-only by convention, not by a database trigger.
 
@@ -242,6 +251,8 @@ Enhancements already delivered after review:
 - Account history page.
 - Physical-unit filters by category, item, and status.
 - Explicit serviceable-versus-available catalog counts.
+- A unified "CampusFlow" interface with a responsive sidebar, card-based catalog and
+  request history, accessible confirmation dialogs, toast feedback, and print styles.
 
 ## 10. Evidence
 
@@ -250,6 +261,8 @@ Enhancements already delivered after review:
 - `docs/evidence/tests.txt` — 123 passing tests and runtime.
 - `docs/evidence/seed.txt` — final seeded dataset.
 - `docs/evidence/environment.txt` — Python, Django, OS, CPU, and RAM used.
+- `docs/evidence/accessibility.txt` — axe-core WCAG A/AA and automated layout audit
+  across desktop and mobile viewports.
 - `docs/evidence/screenshots/` — fourteen seeded screens covering the dashboard,
   review queue, accounts/history, physical units, release, returns, maintenance,
   audit/settings, overdue report, and the basic-user catalog/request/profile pages.

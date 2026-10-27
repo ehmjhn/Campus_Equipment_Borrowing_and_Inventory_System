@@ -4,21 +4,24 @@
 
 {% block admin_content %}
 <div class="page-container accounts-page">
-    <header class="page-header">
-        <nav class="breadcrumb-nav" aria-label="Breadcrumb">
-            <a class="breadcrumb-link" href="{% url 'admin_dashboard' %}">Dashboard</a>
-            <span class="breadcrumb-separator" aria-hidden="true">/</span>
-            <span class="breadcrumb-current" aria-current="page">Accounts</span>
-        </nav>
-        <h2 class="page-title">Account Management</h2>
-        <p class="page-description">Search and manage existing user accounts.</p>
+    <header class="page-header d-flex-between">
+        <div>
+            <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+                <a class="breadcrumb-link" href="{% url 'admin_dashboard' %}">Dashboard</a>
+                <span class="breadcrumb-separator" aria-hidden="true">/</span>
+                <span class="breadcrumb-current" aria-current="page">Accounts</span>
+            </nav>
+            <h1 class="page-title">Account Management</h1>
+            <p class="page-description">Search and manage existing user accounts.</p>
+        </div>
+        <span class="badge badge--neutral">{{ page_obj.paginator.count }} account(s)</span>
     </header>
 
     <div class="card-toolbar mb-4">
         <form class="filter-form d-flex-gap" method="get" action="{% url 'account_management' %}">
             <label class="visually-hidden" for="account-search">Search accounts</label>
             <input class="form-input form-input--search" id="account-search" type="search" name="q" value="{{ search_query }}" placeholder="Search username, name, or email..." aria-label="Search accounts">
-            <button class="btn btn--primary" type="submit">Search</button>
+            <button class="btn btn--primary" type="submit">{% icon 'search' %} Search</button>
             {% if search_query %}
                 <a class="btn btn--link" href="{% url 'account_management' %}">Clear</a>
             {% endif %}
@@ -26,7 +29,7 @@
     </div>
 
     <section class="content-card">
-        <div class="table-responsive">
+        <div tabindex="0" class="table-responsive">
             <table class="data-table">
                 <thead>
                     <tr>
@@ -51,13 +54,15 @@
                                 </span>
                             </td>
                             <td>
-                                <a class="btn btn--outline btn--sm" href="{% url 'account_detail' row.user.id %}">View history</a>
+                                <a class="btn btn--outline btn--sm" href="{% url 'account_detail' row.user.id %}" aria-label="View borrowing history for {{ row.user.username }}">View history</a>
                                 {% if row.user.id == request.user.id %}
                                     <span class="text-muted">Current account</span>
                                 {% else %}
-                                    <form class="inline-form" method="post" action="{% url 'toggle_account_status' row.user.id %}">
+                                    <form class="inline-form ml-2" method="post" action="{% url 'toggle_account_status' row.user.id %}">
                                         {% csrf_token %}
-                                        <button class="btn btn--sm {% if row.is_active %}btn--danger{% else %}btn--success{% endif %}" type="submit" onclick="return confirm('{% if row.is_active %}Deactivate{% else %}Activate{% endif %} this account?');">
+                                        <button class="btn btn--sm {% if row.is_active %}btn--danger{% else %}btn--success{% endif %}" type="submit"
+                                                data-confirm="{% if row.is_active %}Deactivate{% else %}Activate{% endif %} this account?"
+                                                aria-label="{% if row.is_active %}Deactivate{% else %}Activate{% endif %} account {{ row.user.username }}">
                                             {% if row.is_active %}Deactivate{% else %}Activate{% endif %}
                                         </button>
                                     </form>
@@ -74,26 +79,6 @@
         </div>
     </section>
 
-    {% if page_obj.paginator.num_pages > 1 %}
-        <nav class="pagination-nav mt-4 text-center" aria-label="Account pages">
-            {% if page_obj.has_previous %}
-                <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page=1">First</a>
-                <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page={{ page_obj.previous_page_number }}">Previous</a>
-            {% else %}
-                <button class="btn btn--outline" disabled>First</button>
-                <button class="btn btn--outline" disabled>Previous</button>
-            {% endif %}
-
-            <span class="pagination-info mx-3">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-
-            {% if page_obj.has_next %}
-                <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page={{ page_obj.next_page_number }}">Next</a>
-                <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page={{ page_obj.paginator.num_pages }}">Last</a>
-            {% else %}
-                <button class="btn btn--outline" disabled>Next</button>
-                <button class="btn btn--outline" disabled>Last</button>
-            {% endif %}
-        </nav>
-    {% endif %}
+    {% include "partials/_pagination.html" with label="Account pages" %}
 </div>
 {% endblock %}

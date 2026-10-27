@@ -10,7 +10,7 @@
             <span class="breadcrumb-separator" aria-hidden="true">/</span>
             <span class="breadcrumb-current" aria-current="page">Maintenance</span>
         </nav>
-        <h2 class="page-title">Maintenance &amp; Inventory Reconciliation</h2>
+        <h1 class="page-title">Maintenance &amp; Inventory Reconciliation</h1>
         <p class="page-description">Track repairs, return repaired units to service, and reconcile counts against all physical units.</p>
     </header>
 
@@ -18,10 +18,10 @@
         <!-- Physical Unit Inventory Counts -->
         <section class="content-card">
             <header class="card-header">
-                <h3 class="card-title">Inventory Counts</h3>
+                <h2 class="card-title">Inventory Counts</h2>
                 <p class="card-description">Live counts from equipment-unit records.</p>
             </header>
-            <div class="table-responsive">
+            <div tabindex="0" class="table-responsive">
                 <table class="data-table">
                     <thead>
                         <tr>
@@ -63,7 +63,7 @@
         <!-- Open Maintenance Record Form -->
         <section class="content-card form-section">
             <header class="card-header">
-                <h3 class="card-title">Open Maintenance Record</h3>
+                <h2 class="card-title">Open Maintenance Record</h2>
                 <p class="card-description">Move an available unit into maintenance.</p>
             </header>
             <div class="card-body">
@@ -95,7 +95,7 @@
     <!-- Maintenance Records Section -->
     <section class="content-section">
         <header class="section-header">
-            <h3 class="section-title">Maintenance Records</h3>
+            <h2 class="section-title">Maintenance Records</h2>
         </header>
 
         <div class="card-toolbar mb-4">
@@ -109,12 +109,12 @@
             </form>
         </div>
 
-        <h4 class="mb-3">Open Records</h4>
+        <h3 class="card-title mb-3">Open Records</h3>
         <div class="open-records-list mb-5">
             {% for record in open_records %}
                 <article class="content-card mb-4">
                     <header class="card-header d-flex-between">
-                        <h4 class="card-title">Record #{{ record.id }} · {{ record.unit.asset_code }}</h4>
+                        <h3 class="card-title">Record #{{ record.id }} · {{ record.unit.asset_code }}</h3>
                         <span class="badge badge--maintenance">Open</span>
                     </header>
                     <div class="card-body">
@@ -143,7 +143,7 @@
                                 <label class="form-label" for="action-{{ record.id }}">Repair / Action Taken</label>
                                 <textarea class="form-textarea" id="action-{{ record.id }}" name="action_taken" rows="2" maxlength="5000" required placeholder="Describe the fix..."></textarea>
                             </div>
-                            <button class="btn btn--success" type="submit" onclick="return confirm('Close this maintenance record and return unit to available?');">Close Maintenance</button>
+                            <button class="btn btn--success" type="submit" data-confirm="Close this maintenance record and return unit to available?">Close Maintenance</button>
                         </form>
                     </div>
                 </article>
@@ -152,8 +152,8 @@
             {% endfor %}
         </div>
 
-        <h4 class="mb-3">Closed Maintenance History</h4>
-        <div class="table-responsive content-card">
+        <h3 class="card-title mb-3">Closed Maintenance History</h3>
+        <div tabindex="0" class="table-responsive content-card">
             <table class="data-table">
                 <thead>
                     <tr>

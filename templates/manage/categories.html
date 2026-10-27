@@ -10,7 +10,7 @@
             <span class="breadcrumb-separator" aria-hidden="true">/</span>
             <span class="breadcrumb-current" aria-current="page">Equipment Catalog</span>
         </nav>
-        <h2 class="page-title">Equipment Categories</h2>
+        <h1 class="page-title">Equipment Categories</h1>
         <p class="page-description">Create, update, search, and archive equipment categories.</p>
     </header>
 
@@ -23,7 +23,7 @@
     <div class="grid-layout">
         <section class="content-card form-section">
             <header class="card-header">
-                <h3 class="card-title">Add Category</h3>
+                <h2 class="card-title">Add Category</h2>
             </header>
             <div class="card-body">
                 <form class="standard-form" method="post" action="{% url 'category_create' %}">
@@ -45,7 +45,7 @@
 
         <section class="content-card list-section">
             <header class="card-header d-flex-between">
-                <h3 class="card-title">Existing Categories</h3>
+                <h2 class="card-title">Existing Categories</h2>
             </header>
 
             <div class="card-toolbar">
@@ -56,7 +56,7 @@
                 </form>
             </div>
 
-            <div class="table-responsive">
+            <div tabindex="0" class="table-responsive">
                 <table class="data-table">
                     <thead>
                         <tr>
@@ -83,14 +83,25 @@
                                     {% if not category.is_archived %}
                                         <div class="action-group d-flex-gap">
                                             <details class="action-dropdown">
-                                                <summary class="btn btn--sm btn--outline">Edit</summary>
-                                                <div class="dropdown-content p-3">
-                                                    <!-- Edit Form Omitted for Brevity, follow standard form-group structure -->
+                                                <summary class="btn btn--sm btn--outline" aria-label="Edit category {{ category.name }}">{% icon 'edit' %} Edit</summary>
+                                                <div class="dropdown-content">
+                                                    <form class="edit-form" method="post" action="{% url 'category_edit' category.pk %}">
+                                                        {% csrf_token %}
+                                                        <div class="form-group">
+                                                            <label class="form-label" for="category-name-{{ category.pk }}">Category name</label>
+                                                            <input class="form-input" id="category-name-{{ category.pk }}" type="text" name="name" value="{{ category.name }}" maxlength="100" required>
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label class="form-label" for="category-description-{{ category.pk }}">Description</label>
+                                                            <textarea class="form-textarea" id="category-description-{{ category.pk }}" name="description" rows="3">{{ category.description }}</textarea>
+                                                        </div>
+                                                        <button class="btn btn--primary btn--sm" type="submit">Save changes</button>
+                                                    </form>
                                                 </div>
                                             </details>
                                             <form method="post" action="{% url 'category_archive' category.pk %}">
                                                 {% csrf_token %}
-                                                <button class="btn btn--sm btn--danger" type="submit" onclick="return confirm('Archive this category?');">Archive</button>
+                                                <button class="btn btn--sm btn--danger" type="submit" data-confirm="Archive this category?" aria-label="Archive category {{ category.name }}">Archive</button>
                                             </form>
                                         </div>
                                     {% else %}

@@ -1,54 +1,98 @@
 {% extends "base.html" %}
 
 {% block title %}Login - Campus Equipment System{% endblock %}
+{% block body_class %}auth-page{% endblock %}
 
 {% block main_layout %}
-<main class="auth-layout">
-    <div class="auth-container">
-        <header class="auth-header">
-            <h1 class="auth-title">Campus Equipment Borrowing System</h1>
-            <h2 class="auth-subtitle">Login</h2>
-        </header>
+<div class="auth-shell">
+    <aside class="auth-brand" aria-label="About the system">
+        <div class="auth-brand__inner">
+            <a class="brand" href="{% url 'login' %}">
+                <span class="brand__mark" aria-hidden="true">{% icon 'package' %}</span>
+                <span class="brand__text">
+                    <strong>KASIYASAT</strong>
+                    <small>Campus Equipment and Borrowing System</small>
+                </span>
+            </a>
 
-        {% if form.errors %}
-            <div class="alert alert--error" role="alert">
-                <p>Invalid username or password. Please try again.</p>
+            <p class="auth-brand__title">Equipment, reserved and ready when you need it.</p>
+            <p class="auth-brand__lead">
+                One shared workspace for borrowing requests, equipment release, returns,
+                maintenance, and inventory reconciliation.
+            </p>
+
+            <ul class="auth-benefits" role="list">
+                <li>{% icon 'search' %} Check live availability before you request</li>
+                <li>{% icon 'clipboard' %} Track every request from review to return</li>
+                <li>{% icon 'shield' %} Full audit trail for campus accountability</li>
+            </ul>
+
+            <p class="auth-brand__note">IT 401W &middot; BSIT 4F-G1 &middot; Campus Equipment Borrowing and Inventory System</p>
+        </div>
+    </aside>
+
+    <main class="auth-panel" id="main-content">
+        <div class="auth-card">
+            <div class="auth-heading">
+                <span class="auth-heading__mark" aria-hidden="true">{% icon 'package' %}</span>
+                <span class="auth-heading__text">
+                    <strong>Campus Equipment System</strong>
+                    <small>Borrowing &amp; inventory portal</small>
+                </span>
             </div>
-        {% endif %}
 
-        {% if next %}
-            <div class="alert alert--warning" role="alert">
-                {% if user.is_authenticated %}
-                    <p>Your account does not have permission to access that page.</p>
-                {% else %}
-                    <p>Please log in to continue.</p>
-                {% endif %}
-            </div>
-        {% endif %}
+            <header class="auth-header">
+                <h1 class="auth-title">Welcome back</h1>
+                <p class="auth-subtitle">Log in to continue to your workspace.</p>
+            </header>
 
-        <form class="auth-form" method="post">
-            {% csrf_token %}
+            {% if form.errors %}
+                <div class="alert alert--error" role="alert">
+                    <p>Invalid username or password. Please try again.</p>
+                </div>
+            {% endif %}
 
-            <div class="form-group">
-                <label class="form-label" for="{{ form.username.id_for_label }}">Username</label>
-                {{ form.username }}
-            </div>
+            {% if next %}
+                <div class="alert alert--warning" role="alert">
+                    {% if user.is_authenticated %}
+                        <p>Your account does not have permission to access that page.</p>
+                    {% else %}
+                        <p>Please log in to continue.</p>
+                    {% endif %}
+                </div>
+            {% endif %}
 
-            <div class="form-group">
-                <label class="form-label" for="{{ form.password.id_for_label }}">Password</label>
-                {{ form.password }}
-            </div>
+            <form class="auth-form" method="post">
+                {% csrf_token %}
 
-            <input type="hidden" name="next" value="{{ next }}">
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.username.id_for_label }}">Username</label>
+                    {{ form.username }}
+                </div>
 
-            <div class="form-actions">
-                <button class="btn btn--primary w-100" type="submit">Log In</button>
-            </div>
-        </form>
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.password.id_for_label }}">Password</label>
+                    <div class="password-field">
+                        {{ form.password }}
+                        <button class="password-toggle" type="button"
+                                data-password-toggle="{{ form.password.id_for_label }}"
+                                aria-label="Show password" aria-pressed="false">
+                            {% icon 'eye' %}
+                        </button>
+                    </div>
+                </div>
 
-        <p class="auth-footer">
-            No account yet? <a href="{% url 'register' %}">Create one</a>
-        </p>
-    </div>
-</main>
+                <input type="hidden" name="next" value="{{ next }}">
+
+                <div class="form-actions">
+                    <button class="btn btn--primary w-100" type="submit">Log In</button>
+                </div>
+            </form>
+
+            <p class="auth-footer">
+                No account yet? <a href="{% url 'register' %}">Create one</a>
+            </p>
+        </div>
+    </main>
+</div>
 {% endblock %}

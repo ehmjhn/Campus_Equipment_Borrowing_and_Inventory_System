@@ -4,116 +4,141 @@
 
 {% block portal_content %}
 <div class="page-container">
-    <header class="page-header">
-        <nav class="breadcrumb-nav" aria-label="Breadcrumb">
-            <span class="breadcrumb-current" aria-current="page">My Requests</span>
-        </nav>
-        <h2 class="page-title">My Requests</h2>
-        <p class="page-description">Track the status of your borrowing requests and cancel those that are still pending or approved.</p>
+    <header class="page-header d-flex-between">
+        <div>
+            <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+                <span class="breadcrumb-current" aria-current="page">My Requests</span>
+            </nav>
+            <h1 class="page-title">My Requests</h1>
+            <p class="page-description">Track the status of your borrowing requests and cancel those that are still pending or approved.</p>
+        </div>
+        <a class="btn btn--primary" href="{% url 'borrow_request_create' %}">
+            {% icon 'plus' %} New Request
+        </a>
     </header>
 
-    <div class="page-toolbar">
-        <a class="btn btn--primary" href="{% url 'borrow_request_create' %}">New Request</a>
-    </div>
+    {% if history_rows %}
+        <div class="filter-chips" role="group" aria-label="Filter requests by status" data-request-filter>
+            <button class="filter-chip is-active" type="button" data-status="all" aria-pressed="true">All</button>
+            <button class="filter-chip" type="button" data-status="pending" aria-pressed="false">Pending</button>
+            <button class="filter-chip" type="button" data-status="approved" aria-pressed="false">Approved</button>
+            <button class="filter-chip" type="button" data-status="issued" aria-pressed="false">Issued</button>
+            <button class="filter-chip" type="button" data-status="returned" aria-pressed="false">Returned</button>
+            <button class="filter-chip" type="button" data-status="rejected" aria-pressed="false">Rejected</button>
+            <button class="filter-chip" type="button" data-status="cancelled" aria-pressed="false">Cancelled</button>
+        </div>
+    {% endif %}
 
-    {% for row in history_rows %}
-        <article class="content-card" aria-labelledby="request-{{ row.borrow_request.pk }}-heading">
-            <header class="card-header">
-                <h3 class="card-title" id="request-{{ row.borrow_request.pk }}-heading">
-                    Request #{{ row.borrow_request.pk }}
-                </h3>
-                <p class="card-description">Requested on {{ row.borrow_request.requested_at|date:"Y-m-d H:i" }}</p>
-                <p class="badge-group">
-                    <span class="badge badge--{{ row.borrow_request.status|slugify }}">{{ row.borrow_request.status }}</span>
-                    {% if row.is_overdue %}
-                        <span class="badge badge--overdue">Overdue</span>
-                    {% endif %}
-                </p>
-            </header>
+    <section class="requests-list" aria-label="Borrowing requests">
+        {% url 'browse_catalog' as browse_url %}
+        {% for row in history_rows %}
+            <article class="content-card request-card request-card--{{ row.borrow_request.status|slugify }} mb-4"
+                     data-request-status="{{ row.borrow_request.status|slugify }}"
+                     aria-labelledby="request-{{ row.borrow_request.pk }}-heading">
+                <header class="card-header d-flex-between">
+                    <div>
+                        <h2 class="card-title" id="request-{{ row.borrow_request.pk }}-heading">
+                            Request #{{ row.borrow_request.pk }}
+                        </h2>
+                        <p class="request-card__meta">
+                            <span>{% icon 'calendar' %} Requested {{ row.borrow_request.requested_at|date:"M d, Y H:i" }}</span>
+                            <span>{% icon 'clock' %} Due {{ row.borrow_request.return_date|date:"M d, Y" }}</span>
+                        </p>
+                    </div>
+                    <div class="badge-group">
+                        <span class="badge badge--{{ row.borrow_request.status|slugify }}">{{ row.borrow_request.status }}</span>
+                        {% if row.is_overdue %}
+                            <span class="badge badge--overdue">Overdue</span>
+                        {% endif %}
+                    </div>
+                </header>
 
-            <div class="card-body">
-                <dl class="detail-list">
-                    <dt>Purpose</dt>
-                    <dd>{{ row.borrow_request.purpose }}</dd>
+                <div class="card-body">
+                    <dl class="detail-list">
+                        <dt>Purpose</dt>
+                        <dd>{{ row.borrow_request.purpose }}</dd>
 
-                    <dt>Due date:</dt>
-                    <dd>{{ row.borrow_request.return_date|date:"Y-m-d" }}</dd>
+                        <dt>Due date:</dt>
+                        <dd>{{ row.borrow_request.return_date|date:"Y-m-d" }}</dd>
 
-                    {% if row.loan %}
-                        <dt>Released:</dt>
-                        <dd>
-                            {{ row.loan.issued_at|date:"Y-m-d H:i" }}
-                            by {{ row.loan.issued_by.get_full_name|default:row.loan.issued_by.username }}
-                        </dd>
-                    {% endif %}
+                        {% if row.loan %}
+                            <dt>Released:</dt>
+                            <dd>
+                                {{ row.loan.issued_at|date:"Y-m-d H:i" }}
+                                by {{ row.loan.issued_by.get_full_name|default:row.loan.issued_by.username }}
+                            </dd>
+                        {% endif %}
 
-                    {% if row.borrow_request.admin_remarks %}
-                        <dt>Administrator remarks</dt>
-                        <dd>{{ row.borrow_request.admin_remarks|linebreaksbr }}</dd>
-                    {% endif %}
-                </dl>
+                        {% if row.borrow_request.admin_remarks %}
+                            <dt>Administrator remarks</dt>
+                            <dd>{{ row.borrow_request.admin_remarks|linebreaksbr }}</dd>
+                        {% endif %}
+                    </dl>
 
-                <div class="table-responsive">
-                    <table class="data-table">
-                        <caption class="visually-hidden">Items and physical units for request {{ row.borrow_request.pk }}</caption>
-                        <thead>
-                            <tr>
-                                <th scope="col">Item</th>
-                                <th scope="col">Quantity</th>
-                                <th scope="col">Physical units</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item_row in row.item_rows %}
+                    <div tabindex="0" class="table-responsive mt-3">
+                        <table class="data-table">
+                            <caption class="visually-hidden">Items and physical units for request {{ row.borrow_request.pk }}</caption>
+                            <thead>
                                 <tr>
-                                    <td data-label="Item">{{ item_row.request_item.catalog_item.name }}</td>
-                                    <td data-label="Quantity">{{ item_row.request_item.quantity }}</td>
-                                    <td data-label="Physical units">
-                                        {% for allocation, return_record in item_row.allocations %}
-                                            <span class="unit-chip">Asset {{ allocation.unit.asset_code }}</span>
-                                            {% if return_record %}
-                                                <span class="text-muted">returned on {{ return_record.returned_at|date:"Y-m-d H:i" }} ({{ return_record.condition_on_return }})</span>
-                                            {% else %}
-                                                <span class="text-muted">Not yet returned</span>
-                                            {% endif %}
-                                            <br>
-                                        {% empty %}
-                                            <span class="text-muted">No physical units allocated yet.</span>
-                                        {% endfor %}
-                                    </td>
+                                    <th scope="col">Item</th>
+                                    <th scope="col">Quantity</th>
+                                    <th scope="col">Physical units</th>
                                 </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                {% for item_row in row.item_rows %}
+                                    <tr>
+                                        <td data-label="Item">{{ item_row.request_item.catalog_item.name }}</td>
+                                        <td data-label="Quantity">{{ item_row.request_item.quantity }}</td>
+                                        <td data-label="Physical units">
+                                            {% for allocation, return_record in item_row.allocations %}
+                                                <span class="unit-chip">Asset {{ allocation.unit.asset_code }}</span>
+                                                {% if return_record %}
+                                                    <span class="text-muted">returned on {{ return_record.returned_at|date:"Y-m-d H:i" }} ({{ return_record.condition_on_return }})</span>
+                                                {% else %}
+                                                    <span class="text-muted">Not yet returned</span>
+                                                {% endif %}
+                                                <br>
+                                            {% empty %}
+                                                <span class="text-muted">No physical units allocated yet.</span>
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
 
-                {% if row.borrow_request.status == "Pending" or row.borrow_request.status == "Approved" %}
-                    <form class="inline-form" method="post" action="{% url 'cancel_borrow_request' row.borrow_request.pk %}">
-                        {% csrf_token %}
-                        <button class="btn btn--danger btn--small" type="submit" onclick="return confirm('Cancel this request and release its reserved units?');">
-                            Cancel Request #{{ row.borrow_request.pk }}
-                        </button>
-                    </form>
-                {% endif %}
+                    {% if row.borrow_request.status == "Pending" or row.borrow_request.status == "Approved" %}
+                        <form class="inline-form" method="post" action="{% url 'cancel_borrow_request' row.borrow_request.pk %}">
+                            {% csrf_token %}
+                            <button class="btn btn--danger btn--sm" type="submit"
+                                    data-confirm="Cancel this request and release its reserved units?">
+                                Cancel Request #{{ row.borrow_request.pk }}
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </article>
+        {% empty %}
+            <div class="content-card">
+                {% include "partials/_empty_state.html" with icon_name="clipboard" title="No requests yet" text="You have not submitted any borrowing requests yet. Browse the catalog to get started." action_url=browse_url action_label="Browse Equipment" %}
             </div>
-        </article>
-    {% empty %}
-        <section class="content-card">
-            <div class="card-body">
-                <p class="text-muted">You have not submitted any borrowing requests yet.</p>
-                <a class="btn btn--primary" href="{% url 'browse_catalog' %}">Browse Equipment</a>
-            </div>
-        </section>
-    {% endfor %}
+        {% endfor %}
+    </section>
+
+    <div class="content-card" data-filter-empty hidden>
+        {% include "partials/_empty_state.html" with icon_name="filter" title="No requests with this status" text="Try a different status filter to see your other requests." %}
+    </div>
 
     {% if page_obj.paginator.num_pages > 1 %}
         <nav class="pagination-nav" aria-label="Request history pagination">
             {% if page_obj.has_previous %}
-                <a class="btn btn--link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                <a class="btn btn--outline btn--sm" href="?page={{ page_obj.previous_page_number }}">{% icon 'chevron-left' %} Previous</a>
             {% endif %}
             <span class="pagination-status">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
             {% if page_obj.has_next %}
-                <a class="btn btn--link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                <a class="btn btn--outline btn--sm" href="?page={{ page_obj.next_page_number }}">Next {% icon 'chevron-right' %}</a>
             {% endif %}
         </nav>
     {% endif %}

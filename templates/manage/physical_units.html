@@ -12,7 +12,7 @@
             <span class="breadcrumb-separator" aria-hidden="true">/</span>
             <span class="breadcrumb-current" aria-current="page">Physical Units</span>
         </nav>
-        <h2 class="page-title">Physical Units</h2>
+        <h1 class="page-title">Physical Units</h1>
         <p class="page-description">Register individual equipment assets and monitor their inventory status.</p>
     </header>
 
@@ -24,7 +24,7 @@
 
     <section class="content-card form-section" aria-labelledby="register-unit-heading">
         <header class="card-header">
-            <h3 class="card-title" id="register-unit-heading">Register Physical Equipment Unit</h3>
+            <h2 class="card-title" id="register-unit-heading">Register Physical Equipment Unit</h2>
             <p class="card-description">Each physical unit must have a unique asset code.</p>
         </header>
 
@@ -61,7 +61,7 @@
 
     <section class="content-card list-section" aria-labelledby="registered-units-heading">
         <header class="card-header">
-            <h3 class="card-title" id="registered-units-heading">Registered Physical Units</h3>
+            <h2 class="card-title" id="registered-units-heading">Registered Physical Units</h2>
             <p class="card-description">View asset codes, equipment details, and current unit status.</p>
         </header>
 
@@ -90,7 +90,7 @@
             </form>
         </div>
 
-        <div class="table-responsive">
+        <div tabindex="0" class="table-responsive">
             <table class="data-table">
                 <thead>
                     <tr>
@@ -136,12 +136,12 @@
                                     {% if unit.status == "Retired" %}
                                         <form class="inline-form" method="post" action="{% url 'equipment_unit_restore' unit.pk %}">
                                             {% csrf_token %}
-                                            <button class="btn btn--success btn--small" type="submit" onclick="return confirm('Restore this retired unit to Available?');">Restore to Available</button>
+                                            <button class="btn btn--success btn--small" type="submit" data-confirm="Restore this retired unit to Available?">Restore to Available</button>
                                         </form>
                                     {% elif unit.status != "Reserved" and unit.status != "Issued" %}
                                         <form class="inline-form" method="post" action="{% url 'equipment_unit_retire' unit.pk %}">
                                             {% csrf_token %}
-                                            <button class="btn btn--danger btn--small" type="submit" onclick="return confirm('Retire this unit? It will no longer be available for borrowing.');">Retire unit</button>
+                                            <button class="btn btn--danger btn--small" type="submit" data-confirm="Retire this unit? It will no longer be available for borrowing." aria-label="Retire unit {{ unit.asset_code }}">Retire unit</button>
                                         </form>
                                     {% endif %}
                                 </details>
@@ -165,14 +165,14 @@
 
     <section class="content-card" aria-labelledby="reconciliation-heading">
         <header class="card-header">
-            <h3 class="card-title" id="reconciliation-heading">Inventory Reconciliation</h3>
+            <h2 class="card-title" id="reconciliation-heading">Inventory Reconciliation</h2>
             <p class="card-description">
                 Unit totals are derived from the physical unit records. Any discrepancy between a
                 unit status and its allocation or loan record is listed below.
             </p>
         </header>
 
-        <div class="table-responsive">
+        <div tabindex="0" class="table-responsive">
             <table class="data-table">
                 <caption class="visually-hidden">Physical unit counts per catalog item and status</caption>
                 <thead>
@@ -215,7 +215,7 @@
                 </div>
 
                 {% if anomalies.orphaned_reserved %}
-                    <h4 class="section-title">Orphaned reserved units</h4>
+                    <h3 class="section-title">Orphaned reserved units</h3>
                     <ul class="detail-list">
                         {% for unit in anomalies.orphaned_reserved %}
                             <li>{{ unit.asset_code }} &mdash; {{ unit.catalog_item.name }}</li>
@@ -229,7 +229,7 @@
                 {% endif %}
 
                 {% if anomalies.stale_allocations %}
-                    <h4 class="section-title">Stale allocations (approved request without a reserved unit)</h4>
+                    <h3 class="section-title">Stale allocations (approved request without a reserved unit)</h3>
                     <ul class="detail-list">
                         {% for allocation in anomalies.stale_allocations %}
                             <li>
@@ -242,7 +242,7 @@
                 {% endif %}
 
                 {% if anomalies.issued_without_active_loan %}
-                    <h4 class="section-title">Issued units without an active loan</h4>
+                    <h3 class="section-title">Issued units without an active loan</h3>
                     <ul class="detail-list">
                         {% for unit in anomalies.issued_without_active_loan %}
                             <li>{{ unit.asset_code }} &mdash; {{ unit.catalog_item.name }}</li>

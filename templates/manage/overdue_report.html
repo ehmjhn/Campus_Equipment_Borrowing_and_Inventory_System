@@ -10,7 +10,7 @@
             <span class="breadcrumb-separator" aria-hidden="true">/</span>
             <span class="breadcrumb-current" aria-current="page">Overdue Report</span>
         </nav>
-        <h2 class="page-title">Overdue Report</h2>
+        <h1 class="page-title">Overdue Report</h1>
         <p class="page-description">
             Active loans with units still outstanding after their due date.
         </p>
@@ -44,12 +44,12 @@
 
     <section class="content-card" aria-labelledby="overdue-table-heading">
         <header class="card-header">
-            <h3 class="card-title" id="overdue-table-heading">
+            <h2 class="card-title" id="overdue-table-heading">
                 {{ rows|length }} overdue loan(s)
-            </h3>
+            </h2>
         </header>
 
-        <div class="table-responsive">
+        <div tabindex="0" class="table-responsive">
             <table class="data-table">
                 <thead>
                     <tr>

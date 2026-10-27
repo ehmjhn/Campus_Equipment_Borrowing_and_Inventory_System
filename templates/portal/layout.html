@@ -3,52 +3,110 @@
 {% block title %}{% block page_title %}User Portal{% endblock %} | Campus Equipment System{% endblock %}
 
 {% block main_layout %}
-<div class="admin-layout">
-    <header class="admin-header">
-        <div class="admin-header__brand">
-            <h1 class="admin-header__title">Campus Equipment Borrowing and Inventory System</h1>
+<div class="app-shell">
+    <aside class="sidebar sidebar--portal" id="app-sidebar" aria-label="Borrower navigation">
+        <div class="sidebar__brand">
+            <a class="brand" href="{% url 'portal_home' %}">
+                <span class="brand__mark" aria-hidden="true">{% icon 'package' %}</span>
+                <span class="brand__text">
+                    <strong>Campus</strong>
+                    <small>Equipment System</small>
+                </span>
+            </a>
+            <button class="icon-button sidebar__close" type="button" data-nav-close aria-label="Close navigation">
+                {% icon 'x' %}
+            </button>
         </div>
-        <div class="admin-header__user">
-            <span class="admin-header__user-label">Borrower:</span>
-            <strong class="admin-header__username">{{ request.user.get_full_name|default:request.user.username }}</strong>
-            <form class="inline-form" method="post" action="{% url 'logout' %}">
+
+        <div class="sidebar__role">
+            <span class="role-pill role-pill--portal"><span class="role-pill__dot"></span>Borrower portal</span>
+        </div>
+
+        <nav class="sidebar__nav" aria-label="User portal navigation">
+            <p class="nav-group__label">Borrow</p>
+            <a class="nav-item {% if request.resolver_match.url_name == 'browse_catalog' or request.resolver_match.url_name == 'portal_home' %}is-active{% endif %}"
+               href="{% url 'browse_catalog' %}" {% if request.resolver_match.url_name == 'browse_catalog' or request.resolver_match.url_name == 'portal_home' %}aria-current="page"{% endif %}>
+                {% icon 'book' %}<span>Browse Catalog</span>
+            </a>
+            <a class="nav-item {% if request.resolver_match.url_name == 'borrow_request_create' %}is-active{% endif %}"
+               href="{% url 'borrow_request_create' %}" {% if request.resolver_match.url_name == 'borrow_request_create' %}aria-current="page"{% endif %}>
+                {% icon 'plus' %}<span>New Request</span>
+            </a>
+            <a class="nav-item {% if request.resolver_match.url_name == 'request_history' %}is-active{% endif %}"
+               href="{% url 'request_history' %}" {% if request.resolver_match.url_name == 'request_history' %}aria-current="page"{% endif %}>
+                {% icon 'clipboard' %}<span>My Requests</span>
+            </a>
+
+            <p class="nav-group__label">Account</p>
+            <a class="nav-item {% if request.resolver_match.url_name == 'profile_view' %}is-active{% endif %}"
+               href="{% url 'profile_view' %}" {% if request.resolver_match.url_name == 'profile_view' %}aria-current="page"{% endif %}>
+                {% icon 'user' %}<span>My Profile</span>
+            </a>
+        </nav>
+
+        <div class="sidebar__footer">
+            <div class="sidebar__user">
+                <span class="avatar">{{ request.user.username|first|upper }}</span>
+                <span class="sidebar__user-meta">
+                    <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+                    <small>Borrower</small>
+                </span>
+            </div>
+            <form method="post" action="{% url 'logout' %}">
                 {% csrf_token %}
-                <button class="btn btn--link" type="submit">Sign out</button>
+                <button class="btn btn--ghost-light btn--block btn--sm" type="submit">
+                    {% icon 'logout' %} Sign out
+                </button>
             </form>
         </div>
-    </header>
+    </aside>
 
-    <div class="admin-body">
-        <aside class="admin-sidebar">
-            <nav class="admin-nav" aria-label="User portal navigation">
-                <ul class="admin-nav__list">
-                    <li class="admin-nav__item">
-                        <a class="admin-nav__link {% if request.resolver_match.url_name == 'browse_catalog' %}is-active{% endif %}" href="{% url 'browse_catalog' %}">Browse Catalog</a>
-                    </li>
-                    <li class="admin-nav__item">
-                        <a class="admin-nav__link {% if request.resolver_match.url_name == 'borrow_request_create' %}is-active{% endif %}" href="{% url 'borrow_request_create' %}">New Request</a>
-                    </li>
-                    <li class="admin-nav__item">
-                        <a class="admin-nav__link {% if request.resolver_match.url_name == 'request_history' %}is-active{% endif %}" href="{% url 'request_history' %}">My Requests</a>
-                    </li>
-                    <li class="admin-nav__item">
-                        <a class="admin-nav__link {% if request.resolver_match.url_name == 'profile_view' %}is-active{% endif %}" href="{% url 'profile_view' %}">My Profile</a>
-                    </li>
-                </ul>
-            </nav>
-        </aside>
+    <button class="sidebar-overlay" type="button" data-nav-overlay aria-label="Close navigation" hidden></button>
 
-        <main class="admin-content" id="main-content">
-            {% if messages %}
-                <section class="notification-area" aria-label="Notifications" aria-live="polite">
-                    {% for message in messages %}
-                        <div class="alert alert--{{ message.tags|default:'info' }}" role="status">{{ message }}</div>
-                    {% endfor %}
-                </section>
-            {% endif %}
+    <div class="app-main">
+        <header class="topbar">
+            <button class="icon-button topbar__menu" type="button" data-nav-toggle aria-controls="app-sidebar" aria-expanded="false" aria-label="Open navigation">
+                {% icon 'menu' %}
+            </button>
+            <div class="topbar__context">
+                <span class="topbar__eyebrow">Borrower Portal</span>
+                <span class="topbar__date">{% now "l, F j, Y" %}</span>
+            </div>
+            <div class="topbar__actions">
+                <a class="btn btn--primary btn--sm topbar__action" href="{% url 'borrow_request_create' %}" aria-label="Create a new borrowing request">
+                    {% icon 'plus' %}<span>New request</span>
+                </a>
+                <details class="user-menu">
+                    <summary class="user-menu__trigger" aria-label="Account menu">
+                        <span class="avatar avatar--sm">{{ request.user.username|first|upper }}</span>
+                        <span class="user-menu__meta">
+                            <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+                            <small>Borrower</small>
+                        </span>
+                        {% icon 'chevron-down' %}
+                    </summary>
+                    <div class="user-menu__panel">
+                        <p class="user-menu__heading">Signed in as <strong>{{ request.user.username }}</strong></p>
+                        <a class="user-menu__item" href="{% url 'request_history' %}">{% icon 'clipboard' %} My requests</a>
+                        <a class="user-menu__item" href="{% url 'profile_view' %}">{% icon 'user' %} My profile</a>
+                        <form method="post" action="{% url 'logout' %}">
+                            {% csrf_token %}
+                            <button class="user-menu__item user-menu__item--danger" type="submit">{% icon 'logout' %} Sign out</button>
+                        </form>
+                    </div>
+                </details>
+            </div>
+        </header>
 
+        <main class="content" id="main-content">
+            {% include "partials/_messages.html" %}
             {% block portal_content %}{% endblock %}
         </main>
+
+        <footer class="app-footer">
+            <span>Campus Equipment Borrowing and Inventory System</span>
+            <span>IT 401W &middot; BSIT 4F-G1</span>
+        </footer>
     </div>
 </div>
 {% endblock %}

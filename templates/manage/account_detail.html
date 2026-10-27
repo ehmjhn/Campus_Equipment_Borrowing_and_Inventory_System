@@ -4,21 +4,24 @@
 
 {% block admin_content %}
 <div class="page-container accounts-page">
-    <header class="page-header">
-        <nav class="breadcrumb-nav" aria-label="Breadcrumb">
-            <a class="breadcrumb-link" href="{% url 'admin_dashboard' %}">Dashboard</a>
-            <span class="breadcrumb-separator" aria-hidden="true">/</span>
-            <a class="breadcrumb-link" href="{% url 'account_management' %}">Accounts</a>
-            <span class="breadcrumb-separator" aria-hidden="true">/</span>
-            <span class="breadcrumb-current" aria-current="page">{{ account.username }}</span>
-        </nav>
-        <h2 class="page-title">{{ account.get_full_name|default:account.username }}</h2>
-        <p class="page-description">Account details and complete borrowing history.</p>
+    <header class="page-header d-flex-between">
+        <div>
+            <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+                <a class="breadcrumb-link" href="{% url 'admin_dashboard' %}">Dashboard</a>
+                <span class="breadcrumb-separator" aria-hidden="true">/</span>
+                <a class="breadcrumb-link" href="{% url 'account_management' %}">Accounts</a>
+                <span class="breadcrumb-separator" aria-hidden="true">/</span>
+                <span class="breadcrumb-current" aria-current="page">{{ account.username }}</span>
+            </nav>
+            <h1 class="page-title">{{ account.get_full_name|default:account.username }}</h1>
+            <p class="page-description">Account details and complete borrowing history.</p>
+        </div>
+        <a class="btn btn--outline" href="{% url 'account_management' %}">{% icon 'arrow-left' %} All accounts</a>
     </header>
 
     <section class="content-card mb-4" aria-labelledby="account-summary-heading">
         <header class="card-header">
-            <h3 class="card-title" id="account-summary-heading">Account Summary</h3>
+            <h2 class="card-title" id="account-summary-heading">Account Summary</h2>
         </header>
         <div class="card-body">
             <div class="data-grid data-grid--3-col">
@@ -56,13 +59,13 @@
 
     <section class="content-card" aria-labelledby="request-history-heading">
         <header class="card-header">
-            <h3 class="card-title" id="request-history-heading">Borrowing Request History</h3>
+            <h2 class="card-title" id="request-history-heading">Borrowing Request History</h2>
             <p class="card-description">
                 {{ page_obj.paginator.count }} request(s) submitted by this account.
             </p>
         </header>
 
-        <div class="table-responsive">
+        <div tabindex="0" class="table-responsive">
             <table class="data-table">
                 <thead>
                     <tr>
@@ -118,27 +121,7 @@
             </table>
         </div>
 
-        {% if page_obj.paginator.num_pages > 1 %}
-            <nav class="pagination-nav mt-4 text-center" aria-label="Account history pages">
-                {% if page_obj.has_previous %}
-                    <a class="btn btn--outline" href="?page=1">First</a>
-                    <a class="btn btn--outline" href="?page={{ page_obj.previous_page_number }}">Previous</a>
-                {% else %}
-                    <button class="btn btn--outline" disabled>First</button>
-                    <button class="btn btn--outline" disabled>Previous</button>
-                {% endif %}
-
-                <span class="pagination-info mx-3">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-
-                {% if page_obj.has_next %}
-                    <a class="btn btn--outline" href="?page={{ page_obj.next_page_number }}">Next</a>
-                    <a class="btn btn--outline" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
-                {% else %}
-                    <button class="btn btn--outline" disabled>Next</button>
-                    <button class="btn btn--outline" disabled>Last</button>
-                {% endif %}
-            </nav>
-        {% endif %}
+        {% include "partials/_pagination.html" with label="Account history pages" %}
     </section>
 </div>
 {% endblock %}

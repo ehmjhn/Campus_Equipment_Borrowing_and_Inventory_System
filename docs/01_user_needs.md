@@ -4,7 +4,7 @@
 
 The Campus Equipment Borrowing and Inventory System serves two groups: campus
 equipment administrators and borrowers (students or faculty). The requirements were
-derived from the instructor's Final Project A brief, reviewed by all six team members
+derived from the instructor's Final Project, reviewed by all six team members
 in class consultation and asynchronous discussion, and validated through acceptance
 testing of the delivered workflows.
 

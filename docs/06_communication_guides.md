@@ -89,7 +89,7 @@ In progress:
 Blocked:
   - None
 Risks:
-  - CDN styling depends on network access during the demo; screenshots are the fallback
+  - Vendored Bootstrap and layered custom CSS keep the demo independent of the network
 Next week:
   - Defense and Q&A; record instructor feedback in docs/04_professional_judgment.md
 ```

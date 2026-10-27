@@ -12,7 +12,7 @@ HTML/CSS/JS, and Bootstrap. SQLite is explicitly allowed for demonstration.
 | ORM | Django ORM | bundled | Parameterised queries, relationships, aggregates, and transactions without raw SQL |
 | Database | SQLite | bundled | Zero-setup file database suitable for a local demonstration |
 | Templates | Django template language | bundled | Server-rendered HTML with inheritance and auto-escaping |
-| UI framework | Bootstrap | 5.3 via CDN | Required styling option; no build step or package manager |
+| UI framework | Bootstrap | 5.3.3, vendored under `static/vendor/` | Required styling option; no build step or package manager, and works offline |
 | Tests | `django.test.TestCase` | bundled | Exercises views, ORM constraints, permissions, and CSV responses |
 | Charts | CSS/HTML progress bars | — | No extra dependency; values are derived from ORM aggregates |
 
@@ -48,9 +48,10 @@ on SQLite-specific behaviour.
 
 | Option | Strengths | Why not chosen |
 | :--- | :--- | :--- |
-| **Server-rendered templates + Bootstrap CDN** (chosen) | Matches the required stack, accessible HTML semantics, no build step | Full page reloads |
+| **Server-rendered templates + vendored Bootstrap 5.3.3 + layered custom CSS** (chosen) | Matches the required stack, accessible HTML semantics, works offline, no build step | Full page reloads |
 | React/Vue SPA | Rich client interactions | Adds a toolchain and a second codebase outside the course scope |
-| Custom CSS framework | Complete design control | Styling is assigned to another member; this repository keeps HTML structure only |
+| Bootstrap alone, unstyled | Fastest to wire up | Generic look and weak workflow feedback; the brief asks for a considered interface |
+| A custom CSS framework or utility generator | Complete design control | Adds a build tool and a design system the group would have to maintain |
 
 ### Emerging technology evaluation: HTMX
 

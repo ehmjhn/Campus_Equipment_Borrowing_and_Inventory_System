@@ -11,7 +11,7 @@
                 <span class="breadcrumb-separator" aria-hidden="true">/</span>
                 <span class="breadcrumb-current" aria-current="page">Request Review</span>
             </nav>
-            <h2 class="page-title">Request Review</h2>
+            <h1 class="page-title">Request Review</h1>
             <p class="page-description">Review borrowing requests and reserve physical equipment units.</p>
         </div>
         <span class="badge badge--neutral">{{ page_obj.paginator.count }} request(s)</span>
@@ -41,9 +41,9 @@
 
     <section class="requests-list">
         {% for borrow_request in requests %}
-            <article class="content-card mb-4">
+            <article class="content-card request-card request-card--{{ borrow_request.status|slugify }} mb-4">
                 <header class="card-header d-flex-between">
-                    <h3 class="card-title">Request #{{ borrow_request.id }}</h3>
+                    <h2 class="card-title">Request #{{ borrow_request.id }}</h2>
                     <span class="badge badge--{{ borrow_request.status|slugify }}">{{ borrow_request.status }}</span>
                 </header>
 
@@ -69,7 +69,7 @@
                         <p class="data-value">{{ borrow_request.purpose|default:"No purpose provided" }}</p>
                     </div>
 
-                    <div class="table-responsive mt-3">
+                    <div tabindex="0" class="table-responsive mt-3">
                         <table class="data-table data-table--sm">
                             <thead>
                                 <tr>
@@ -113,7 +113,7 @@
                                     <label class="form-label visually-hidden" for="approve-remarks-{{ borrow_request.id }}">Approval Remarks</label>
                                     <textarea class="form-textarea" id="approve-remarks-{{ borrow_request.id }}" name="admin_remarks" rows="2" placeholder="Optional note for the borrower"></textarea>
                                 </div>
-                                <button class="btn btn--success w-100" type="submit" onclick="return confirm('Approve this request and reserve the listed units?');">Approve &amp; Reserve</button>
+                                <button class="btn btn--success w-100" type="submit" data-confirm="Approve this request and reserve the listed units?">Approve &amp; Reserve</button>
                             </form>
 
                             <form class="rejection-form w-50" method="post" action="{% url 'request_reject' borrow_request.id %}">
@@ -122,7 +122,7 @@
                                     <label class="form-label visually-hidden" for="reject-remarks-{{ borrow_request.id }}">Rejection Reason</label>
                                     <textarea class="form-textarea" id="reject-remarks-{{ borrow_request.id }}" name="rejection_reason" rows="2" required placeholder="Required rejection reason"></textarea>
                                 </div>
-                                <button class="btn btn--danger w-100" type="submit" onclick="return confirm('Reject this request?');">Reject</button>
+                                <button class="btn btn--danger w-100" type="submit" data-confirm="Reject this request?">Reject</button>
                             </form>
                         </div>
                     {% endif %}
@@ -133,26 +133,6 @@
         {% endfor %}
     </section>
 
-    {% if page_obj.paginator.num_pages > 1 %}
-        <nav class="pagination-nav mt-4 text-center" aria-label="Request pages">
-            {% if page_obj.has_previous %}
-                <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&amp;status={{ status_filter|urlencode }}&amp;date_from={{ date_from }}&amp;date_to={{ date_to }}&amp;page=1">First</a>
-                <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&amp;status={{ status_filter|urlencode }}&amp;date_from={{ date_from }}&amp;date_to={{ date_to }}&amp;page={{ page_obj.previous_page_number }}">Previous</a>
-            {% else %}
-                <button class="btn btn--outline" disabled>First</button>
-                <button class="btn btn--outline" disabled>Previous</button>
-            {% endif %}
-
-            <span class="pagination-info mx-3">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-
-            {% if page_obj.has_next %}
-                <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&amp;status={{ status_filter|urlencode }}&amp;date_from={{ date_from }}&amp;date_to={{ date_to }}&amp;page={{ page_obj.next_page_number }}">Next</a>
-                <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&amp;status={{ status_filter|urlencode }}&amp;date_from={{ date_from }}&amp;date_to={{ date_to }}&amp;page={{ page_obj.paginator.num_pages }}">Last</a>
-            {% else %}
-                <button class="btn btn--outline" disabled>Next</button>
-                <button class="btn btn--outline" disabled>Last</button>
-            {% endif %}
-        </nav>
-    {% endif %}
+    {% include "partials/_pagination.html" with label="Request pages" %}
 </div>
 {% endblock %}

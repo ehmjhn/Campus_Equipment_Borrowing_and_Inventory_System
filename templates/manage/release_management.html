@@ -10,7 +10,7 @@
             <span class="breadcrumb-separator" aria-hidden="true">/</span>
             <span class="breadcrumb-current" aria-current="page">Equipment Release</span>
         </nav>
-        <h2 class="page-title">Equipment Release</h2>
+        <h1 class="page-title">Equipment Release</h1>
         <p class="page-description">Issue approved requests, review reserved asset codes, and print borrowing slips.</p>
     </header>
 
@@ -27,14 +27,14 @@
 
     <section class="content-section">
         <header class="section-header">
-            <h3 class="section-title">Approved Requests Ready for Release</h3>
+            <h2 class="section-title">Approved Requests Ready for Release</h2>
             <p class="section-description">Requests must have all requested units reserved and a valid due date before they can be issued.</p>
         </header>
 
         {% for borrow_request in approved_requests %}
             <article class="content-card mb-4">
                 <header class="card-header d-flex-between">
-                    <h4 class="card-title">Request #{{ borrow_request.id }}</h4>
+                    <h3 class="card-title">Request #{{ borrow_request.id }}</h3>
                     <span class="badge badge--approved">{{ borrow_request.status }}</span>
                 </header>
 
@@ -60,7 +60,7 @@
                         <p class="data-value">{{ borrow_request.purpose }}</p>
                     </div>
 
-                    <div class="table-responsive mt-4">
+                    <div tabindex="0" class="table-responsive mt-4">
                         <table class="data-table data-table--sm">
                             <thead>
                                 <tr>
@@ -103,7 +103,7 @@
                                 {% csrf_token %}
                                 <strong class="d-block mb-2">Ready to Release?</strong>
                                 <p class="text-muted mb-3">Issue this request to create a loan and mark its reserved units as issued.</p>
-                                <button class="btn btn--success" type="submit" onclick="return confirm('Issue the reserved equipment for this request?');">Issue Equipment</button>
+                                <button class="btn btn--success" type="submit" data-confirm="Issue the reserved equipment for this request?">{% icon 'send' %} Issue Equipment</button>
                             </form>
                         </div>
 
@@ -131,31 +131,15 @@
             <div class="alert alert--info">No approved requests are ready for release.</div>
         {% endfor %}
 
-        {% if page_obj.paginator.num_pages > 1 %}
-            <nav class="pagination-nav mt-4 text-center" aria-label="Approved request pages">
-                {% if page_obj.has_previous %}
-                    <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page={{ page_obj.previous_page_number }}">Previous</a>
-                {% else %}
-                    <button class="btn btn--outline" disabled>Previous</button>
-                {% endif %}
-
-                <span class="pagination-info mx-3">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-
-                {% if page_obj.has_next %}
-                    <a class="btn btn--outline" href="?q={{ search_query|urlencode }}&page={{ page_obj.next_page_number }}">Next</a>
-                {% else %}
-                    <button class="btn btn--outline" disabled>Next</button>
-                {% endif %}
-            </nav>
-        {% endif %}
+        {% include "partials/_pagination.html" with label="Approved request pages" %}
     </section>
 
     <section class="content-section mt-5">
         <header class="section-header">
-            <h3 class="section-title">Issued Loans and Borrowing Slips</h3>
+            <h2 class="section-title">Issued Loans and Borrowing Slips</h2>
             <p class="section-description">Open a slip to print or reprint the borrower and assigned asset details.</p>
         </header>
-        <div class="table-responsive content-card">
+        <div tabindex="0" class="table-responsive content-card">
             <table class="data-table">
                 <thead>
                     <tr>
@@ -178,7 +162,7 @@
                             <td>{{ loan.issued_at|date:"M d, Y h:i A" }}</td>
                             <td>{{ loan.request.return_date|date:"M d, Y" }}</td>
                             <td><span class="badge badge--{{ loan.request.status|slugify }}">{{ loan.request.status }}</span></td>
-                            <td><a class="btn btn--sm btn--outline" href="{% url 'borrowing_slip' loan.request_id %}">View Slip</a></td>
+                            <td><a class="btn btn--sm btn--outline" href="{% url 'borrowing_slip' loan.request_id %}" aria-label="View borrowing slip for loan {{ loan.id }}">{% icon 'printer' %} View Slip</a></td>
                         </tr>
                     {% empty %}
                         <tr><td colspan="6" class="text-center text-muted">No issued loans found.</td></tr>

@@ -12,7 +12,7 @@
             <span class="breadcrumb-separator" aria-hidden="true">/</span>
             <span class="breadcrumb-current" aria-current="page">Catalog Items</span>
         </nav>
-        <h2 class="page-title">Catalog Items</h2>
+        <h1 class="page-title">Catalog Items</h1>
         <p class="page-description">Manage equipment types, descriptions, and categories.</p>
     </header>
 
@@ -24,7 +24,7 @@
 
     <section class="content-card form-section" aria-labelledby="add-item-heading">
         <header class="card-header">
-            <h3 class="card-title" id="add-item-heading">Add Catalog Item</h3>
+            <h2 class="card-title" id="add-item-heading">Add Catalog Item</h2>
             <p class="card-description">Create an equipment type and assign it to a category.</p>
         </header>
 
@@ -57,7 +57,7 @@
 
     <section class="content-card list-section" aria-labelledby="existing-items-heading">
         <header class="card-header">
-            <h3 class="card-title" id="existing-items-heading">Existing Catalog Items</h3>
+            <h2 class="card-title" id="existing-items-heading">Existing Catalog Items</h2>
             <p class="card-description">Search and manage registered equipment types.</p>
         </header>
 
@@ -72,7 +72,7 @@
             </div>
         </form>
 
-        <div class="table-responsive">
+        <div tabindex="0" class="table-responsive">
             <table class="data-table">
                 <thead>
                     <tr>
@@ -104,7 +104,7 @@
                             <td data-label="Actions">
                                 {% if not item.is_archived %}
                                     <details class="action-dropdown">
-                                        <summary class="btn btn--sm btn--outline">Edit</summary>
+                                        <summary class="btn btn--sm btn--outline" aria-label="Edit catalog item {{ item.name }}">{% icon 'edit' %} Edit</summary>
                                         <div class="dropdown-content">
                                             <form class="edit-form" method="post" action="{% url 'catalog_item_edit' item.pk %}">
                                                 {% csrf_token %}
@@ -130,7 +130,7 @@
                                     </details>
                                     <form class="inline-form ml-2" method="post" action="{% url 'catalog_item_archive' item.pk %}">
                                         {% csrf_token %}
-                                        <button class="btn btn--sm btn--danger" type="submit" onclick="return confirm('Archive this catalog item? Existing history is preserved.');">Archive</button>
+                                        <button class="btn btn--sm btn--danger" type="submit" data-confirm="Archive this catalog item? Existing history is preserved." aria-label="Archive catalog item {{ item.name }}">Archive</button>
                                     </form>
                                 {% else %}
                                     <span class="text-muted">Read-only</span>

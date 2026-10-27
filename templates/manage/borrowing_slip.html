@@ -3,31 +3,23 @@
 {% block title %}Borrowing Slip | Campus Equipment System{% endblock %}
 
 {% block main_layout %}
-<main class="page-container borrowing-slip py-5">
-
-    <!-- Slip Header -->
+<div class="page-container borrowing-slip py-5">
     <header class="page-header text-center mb-5 border-bottom pb-4">
         <p class="text-uppercase text-muted text-sm font-weight-bold mb-1">Campus Equipment Borrowing and Inventory System</p>
         <h1 class="page-title mb-2">Equipment Borrowing Slip</h1>
         <p class="text-muted mb-0">Loan No. <strong>{{ loan.id }}</strong> &nbsp;|&nbsp; Request No. <strong>{{ borrow_request.id }}</strong></p>
+        <p class="mb-0 mt-2">
+            <span class="badge badge--{{ borrow_request.status|slugify }}">{{ borrow_request.status }}</span>
+        </p>
     </header>
 
-    {% if messages %}
-        <section class="notification-area d-print-none mb-4" aria-label="Notifications" aria-live="polite">
-            {% for message in messages %}
-                <div class="alert alert--{{ message.tags|default:'info' }}" role="status">{{ message }}</div>
-            {% endfor %}
-        </section>
-    {% endif %}
+    {% include "partials/_messages.html" %}
 
-    <!-- Slip Content -->
-    <section class="content-card border">
+    <section class="content-card border" aria-label="Borrowing slip details">
         <div class="card-body p-5">
-
-            <div class="grid-layout mb-5">
-                <!-- Borrower Details -->
+            <div class="slip-layout mb-5">
                 <div class="details-section">
-                    <h3 class="text-md text-uppercase text-muted border-bottom pb-2 mb-3">Borrower Details</h3>
+                    <h2 class="slip-section-title">{% icon 'user' %} Borrower Details</h2>
                     <div class="data-group mb-3">
                         <strong class="data-label">Name</strong>
                         <p class="data-value">{{ borrow_request.user.get_full_name|default:borrow_request.user.username }}</p>
@@ -42,9 +34,8 @@
                     </div>
                 </div>
 
-                <!-- Release Details -->
                 <div class="details-section">
-                    <h3 class="text-md text-uppercase text-muted border-bottom pb-2 mb-3">Release Details</h3>
+                    <h2 class="slip-section-title">{% icon 'calendar' %} Release Details</h2>
                     <div class="data-group mb-3">
                         <strong class="data-label">Release Date</strong>
                         <p class="data-value">{{ loan.issued_at|date:"M d, Y h:i A" }}</p>
@@ -63,9 +54,8 @@
                 </div>
             </div>
 
-            <!-- Equipment Issued Table -->
-            <h3 class="text-md text-uppercase text-muted border-bottom pb-2 mb-3">Equipment Issued</h3>
-            <div class="table-responsive mb-4">
+            <h2 class="slip-section-title">{% icon 'package' %} Equipment Issued</h2>
+            <div tabindex="0" class="table-responsive mb-4">
                 <table class="data-table w-100 border">
                     <thead class="bg-light">
                         <tr>
@@ -90,8 +80,7 @@
                 </table>
             </div>
 
-            <!-- Terms & Signatures -->
-            <div class="terms-box bg-light p-4 rounded mb-5">
+            <div class="terms-box p-4 rounded mb-5">
                 <p class="text-sm text-muted mb-0">I acknowledge receipt of the equipment listed above and agree to return it by the due date in the recorded condition, subject to the campus borrowing rules. I understand that failure to return items on time or returning damaged items may result in penalties.</p>
             </div>
 
@@ -109,17 +98,14 @@
                     </div>
                 </div>
             </div>
-
         </div>
     </section>
 
-    <!-- Action Buttons (Hidden when printing via CSS .d-print-none) -->
-    <div class="form-actions d-print-none text-center mt-5 mb-5">
+    <div class="form-actions d-print-none text-center mt-5 mb-5" style="justify-content: center;">
         <button class="btn btn--primary px-4" type="button" onclick="window.print()">
-            <svg width="16" height="16" fill="currentColor" class="mr-2" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/><path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4V3zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2H5zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1z"/></svg>
-            Print Borrowing Slip
+            {% icon 'printer' %} Print Borrowing Slip
         </button>
-        <a class="btn btn--outline px-4 ml-2" href="{% url 'release_management' %}">Back to Equipment Release</a>
+        <a class="btn btn--outline px-4" href="{% url 'release_management' %}">{% icon 'arrow-left' %} Back to Equipment Release</a>
     </div>
-</main>
+</div>
 {% endblock %}

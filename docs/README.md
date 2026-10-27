@@ -70,4 +70,6 @@ records the corresponding commit history.
 - [x] Documentation placeholders are replaced with implementation facts.
 - [x] Screenshots of the principal admin and basic-user screens are in
       `docs/evidence/screenshots/`.
+- [x] Automated WCAG A/AA and layout audits pass; results are recorded in
+      `docs/evidence/accessibility.txt`.
 - [x] ZIP excludes `.venv/`, `__pycache__/`, `db.sqlite3`, `.env`, and `.idea/`.
