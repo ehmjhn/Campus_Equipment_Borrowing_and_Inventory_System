@@ -1,0 +1,12 @@
+{% comment %}
+Reusable empty state. Usage:
+{% include "partials/_empty_state.html" with icon_name="inbox" title="No records yet" text="..." action_url=some_url action_label="Create one" %}
+{% endcomment %}
+<div class="empty-state">
+    <span class="empty-state__icon" aria-hidden="true">{% icon icon_name|default:'inbox' %}</span>
+    <h3 class="empty-state__title">{{ title|default:"Nothing here yet" }}</h3>
+    <p class="empty-state__text">{{ text|default:"There are no records to display." }}</p>
+    {% if action_url %}
+        <a class="btn btn--primary btn--sm" href="{{ action_url }}">{{ action_label|default:"Get started" }}</a>
+    {% endif %}
+</div>

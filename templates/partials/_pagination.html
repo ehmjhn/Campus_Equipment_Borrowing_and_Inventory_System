@@ -1,0 +1,25 @@
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="pagination-nav" aria-label="{{ label|default:'Pagination' }}">
+    {% if page_obj.has_previous %}
+        <a class="btn btn--outline btn--sm" href="{% querystring page=1 %}" aria-label="First page">First</a>
+        <a class="btn btn--outline btn--sm" href="{% querystring page=page_obj.previous_page_number %}" rel="prev">
+            {% icon 'chevron-left' %} Previous
+        </a>
+    {% else %}
+        <button class="btn btn--outline btn--sm" type="button" disabled>First</button>
+        <button class="btn btn--outline btn--sm" type="button" disabled>{% icon 'chevron-left' %} Previous</button>
+    {% endif %}
+
+    <span class="pagination-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+    {% if page_obj.has_next %}
+        <a class="btn btn--outline btn--sm" href="{% querystring page=page_obj.next_page_number %}" rel="next">
+            Next {% icon 'chevron-right' %}
+        </a>
+        <a class="btn btn--outline btn--sm" href="{% querystring page=page_obj.paginator.num_pages %}" aria-label="Last page">Last</a>
+    {% else %}
+        <button class="btn btn--outline btn--sm" type="button" disabled>Next {% icon 'chevron-right' %}</button>
+        <button class="btn btn--outline btn--sm" type="button" disabled>Last</button>
+    {% endif %}
+</nav>
+{% endif %}
