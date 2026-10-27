@@ -1,0 +1,9 @@
+/* Admin pagination controls */
+.admin-pagination{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;padding:16px 4px;color:var(--text-muted,#64748b);font-size:14px}
+.admin-pagination__rows,.admin-pagination__nav{display:flex;align-items:center;gap:10px}
+.admin-pagination__size{padding:8px 28px 8px 10px;border:1px solid #cbd5e1;border-radius:9px;background:var(--surface,#fff);color:inherit;font:inherit}
+.admin-pagination__button{display:inline-flex;align-items:center;justify-content:center;min-height:39px;padding:8px 14px;border:1px solid #cbd5e1;border-radius:10px;background:var(--surface,#fff);color:var(--text,#334155);font-weight:600;text-decoration:none;cursor:pointer;font:inherit}
+.admin-pagination__button:disabled{opacity:.5;cursor:not-allowed}
+.admin-pagination__button:not(:disabled):hover{background:#eef2f7}
+.admin-pagination__info{white-space:nowrap;padding:0 10px;font-weight:600}
+@media(max-width:580px){.admin-pagination{justify-content:center}.admin-pagination__nav{width:100%;justify-content:center}.admin-pagination__info{padding:0}}

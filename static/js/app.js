@@ -279,4 +279,39 @@
             ).observe(sentinel);
         }
     }
+
+    /* Independent client-side pagination for admin report tables. */
+    document.querySelectorAll('table[data-admin-paginate]').forEach(function (table) {
+        var body = table.tBodies[0];
+        if (!body) return;
+        var rows = Array.prototype.slice.call(body.rows);
+        // Django's {% empty %} placeholder must remain visible when there are no records.
+        var dataRows = rows.filter(function (row) { return !row.querySelector('td[colspan]') || rows.length > 1; });
+        if (!dataRows.length) return;
+        var size = 10, page = 1;
+        var controls = document.createElement('div');
+        controls.className = 'admin-pagination';
+        controls.innerHTML = '<label class="admin-pagination__rows">Rows per page <select class="admin-pagination__size" aria-label="Rows per page"><option>10</option><option>20</option><option>50</option><option>100</option></select></label><div class="admin-pagination__nav"><button type="button" class="admin-pagination__button" data-prev>‹ Previous</button><span class="admin-pagination__info" aria-live="polite"></span><button type="button" class="admin-pagination__button" data-next>Next ›</button></div>';
+        var container = table.closest('.table-responsive') || table;
+        container.insertAdjacentElement('afterend', controls);
+        var select = controls.querySelector('select');
+        var prev = controls.querySelector('[data-prev]');
+        var next = controls.querySelector('[data-next]');
+        var info = controls.querySelector('.admin-pagination__info');
+        function render() {
+            // Re-evaluate rows so existing filtering can hide rows using the hidden attribute.
+            var eligible = dataRows.filter(function (row) { return !row.hasAttribute('data-filtered-out'); });
+            var pages = Math.max(1, Math.ceil(eligible.length / size));
+            page = Math.min(page, pages);
+            dataRows.forEach(function (row) { row.hidden = true; });
+            eligible.slice((page - 1) * size, page * size).forEach(function (row) { row.hidden = false; });
+            info.textContent = 'Page ' + page + ' of ' + pages;
+            prev.disabled = page <= 1;
+            next.disabled = page >= pages;
+        }
+        select.addEventListener('change', function () { size = Number(select.value); page = 1; render(); });
+        prev.addEventListener('click', function () { if (page > 1) { page--; render(); } });
+        next.addEventListener('click', function () { page++; render(); });
+        render();
+    });
 })();
