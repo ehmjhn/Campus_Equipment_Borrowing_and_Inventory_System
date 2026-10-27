@@ -10,7 +10,9 @@ register = template.Library()
 def icon(name, css_class="icon"):
     """Render an inline SVG reference from the sprite in base.html."""
     return format_html(
-        '<svg class="{}" aria-hidden="true" focusable="false">'
+        '<svg class="{}" aria-hidden="true" focusable="false" fill="none" '
+        'stroke="currentColor" stroke-width="1.75" stroke-linecap="round" '
+        'stroke-linejoin="round">'
         '<use href="#i-{}"></use></svg>',
         css_class,
         name,

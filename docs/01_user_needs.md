@@ -8,13 +8,13 @@ derived from the instructor's Final Project, reviewed by all six team members
 in class consultation and asynchronous discussion, and validated through acceptance
 testing of the delivered workflows.
 
-| Item | Detail |
-| :--- | :--- |
-| Primary source | `IT 401W - Project (Equipment Borrowing) - 1st Sem 26-27 (1).docx` |
+| Item | Detail                                                                        |
+| :--- |:------------------------------------------------------------------------------|
+| Primary source | `IT 401W - Project (Equipment Borrowing) - 1st Sem 26-27.docx`                |
 | Discovery method | Requirements analysis, class consultation, team review, scenario walkthroughs |
-| Respondents | Six BSIT 4F-G1 team members acting as administrator and borrower proxies |
-| Requirement review date | October 22–25, 2026 |
-| Acceptance validation | 123 automated tests plus a seeded end-to-end demo walkthrough |
+| Respondents | Six BSIT 4F-G1 team members acting as administrator and borrower proxies      |
+| Requirement review date | October 16–25, 2026                                                           |
+| Acceptance validation | 123 automated tests plus a seeded end-to-end demo walkthrough                 |
 
 No external interviews were conducted. The observations below are the pain points
 stated in the brief and confirmed during the team's walkthrough, not quotations from

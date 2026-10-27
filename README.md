@@ -30,7 +30,7 @@ Copy-Item .env.example .env
 # 4. Create the database schema
 python manage.py migrate
 
-# 5. Load the fictional demo data (resets existing demo data)
+# 5. Load the demo data (resets existing demo data)
 python manage.py seed
 
 # 6. Run the development server
@@ -57,22 +57,51 @@ python -c "from django.core.management.utils import get_random_secret_key; print
 
 ### Demo credentials
 
-| Role | Username | Password | Landing page |
-| :--- | :--- | :--- | :--- |
-| Admin | `admin` | `admin123` | `/manage/` |
-| Basic user | `user1` … `user8` | `user123` | `/portal/` |
+`python manage.py seed` creates ten accounts that follow the project's agreed
+credential pattern:
 
-These are fictional demo accounts created by `python manage.py seed`. They are not
-committed credentials and must not be reused outside this project.
+- **Username:** initials of every given name, then `.` and the surname
+- **Email:** `GivenName.Surname@bulsu.edu.ph`
+- **Password:** `alab_<surname>.123`
+
+| Role | Name | Username | Password |
+| :--- | :--- | :--- | :--- |
+| Admin | Ian Joshua Lizano | `ij.lizano` | `alab_lizano.123` |
+| Admin (dummy) | Maria Clara Santos | `mc.santos` | `alab_santos.123` |
+| Basic user | Jhon Emmanuele Alcanices | `je.alcanices` | `alab_alcanices.123` |
+| Basic user | Jerome San Pedro | `j.sanpedro` | `alab_sanpedro.123` |
+| Basic user | Alexander Azotes | `a.azotes` | `alab_azotes.123` |
+| Basic user | Marc Renzo Bulaong | `mr.bulaong` | `alab_bulaong.123` |
+| Basic user | Daniel Alejandrino | `d.alejandrino` | `alab_alejandrino.123` |
+| Basic user (dummy) | Patricia Mae Reyes | `pm.reyes` | `alab_reyes.123` |
+| Basic user (dummy) | Kyle Adrian Mendoza | `ka.mendoza` | `alab_mendoza.123` |
+| Basic user (dummy) | Bea Nicole Garcia | `bn.garcia` | `alab_garcia.123` |
+
+Every account gets a dummy Philippine mobile number, `09876543210` through
+`09876543219`, in the order listed. `je.alcanices` is the showcase account: it owns
+requests in every lifecycle state, so its portal history demonstrates pending,
+cancelled, rejected, issued, and returned requests.
+
+These accounts exist for this project only. The team members' own names are used
+with their consent, the remaining identities are invented, and no third-party
+student or staff data is seeded. The credentials must not be reused outside this
+project.
 
 ### Resetting the data
 
+Stop the development server first (Windows locks `db.sqlite3` while it runs), then
+rebuild everything from zero:
+
 ```powershell
+Remove-Item db.sqlite3
+python manage.py migrate
 python manage.py seed
 ```
 
-`seed` deletes the demo rows and recreates them. It is safe to run repeatedly and is
-the only supported way to rebuild the demo dataset (the SQLite file is not committed).
+`seed` also runs on its own: it deletes the seeded rows inside one transaction and
+recreates them, so it is safe to repeat. Deleting `db.sqlite3` first is the only way
+to restart the auto-increment IDs at 1. The SQLite file is git-ignored, so the reset
+never leaves the local machine.
 
 ---
 
@@ -239,7 +268,7 @@ python manage.py test
 `python manage.py seed` produces at least:
 
 - 3 categories, 6 catalog items, 24 physical units
-- 1 admin and 8 basic users
+- 2 admins and 8 basic users (10 accounts in total)
 - 22 requests across Pending, Approved, Rejected, Cancelled, Issued,
   Partially Returned, and Returned
 - 8 issued loans (including overdue loans)

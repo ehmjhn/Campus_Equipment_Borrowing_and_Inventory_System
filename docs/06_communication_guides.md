@@ -21,8 +21,9 @@ stays under 12 minutes.
 ### Demo data to prepare
 
 1. Run `python manage.py seed`.
-2. Sign in as `admin` in one browser profile.
-3. Sign in as `user1` in a second browser profile or incognito window.
+2. Sign in as `ij.lizano` / `alab_lizano.123` in one browser profile.
+3. Sign in as `je.alcanices` / `alab_alcanices.123` in a second browser profile or
+   incognito window.
 4. Keep a Pending request ready for the live approval.
 5. Keep one Available unit ready for retirement/restoration.
 6. Keep one Issued loan ready for a partial/damaged return.
@@ -116,7 +117,7 @@ What changed: Basic-user URL routes, U3 request submission, U4 history/cancellat
   portal templates, and tests.
 How to test:
   1. Run python manage.py test Campus_Equipment_Borrowing_and_Inventory_System_APP.tests.test_portal
-  2. Sign in as user1, submit a two-item request, cancel it, and confirm units return.
+  2. Sign in as je.alcanices, submit a two-item request, cancel it, and confirm units return.
 Expected result: Request is Pending on submit; cancellation returns units to Available
   and keeps the released allocation history.
 Risks: Ownership scoping and the interaction between cancellation and reservations.

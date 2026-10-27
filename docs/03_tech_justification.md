@@ -85,14 +85,16 @@ documentation. It is a reasonable future enhancement after the course.
 | Audit | `AuditLog` rows written inside the same transaction as the change |
 | Reports | ORM aggregation (`Count`, `TruncMonth`) and streaming `HttpResponse` CSV |
 | Reusable logic | Role decorators, `_portal_catalog_items`, `_inventory_status_summary`, `_inventory_anomalies`, `_overdue_loan_rows`, and model methods such as `UnitAllocation.release()` |
-| Reproducible demo | `python manage.py seed` builds a complete fictional dataset |
+| Reproducible demo | `python manage.py seed` builds a complete demo dataset |
 
 ## 4. Performance and scale notes
 
 - Dashboard queries use `select_related`, `prefetch_related`, and database
   aggregation rather than Python loops.
 - Lists are paginated (10 accounts, requests, account-history rows, or loans; 25 audit
-  rows).
+  rows). Only the A3 review queue is required by the brief to be searchable and
+  paginated; the other lists are paginated as a voluntary usability improvement.
+  Pagers hide themselves when the list fits on one page.
 - CSV export streams rows through `HttpResponse`.
 - The review queue computes availability in one grouped query rather than one query per
   row.

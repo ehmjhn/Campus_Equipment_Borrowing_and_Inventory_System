@@ -11,8 +11,43 @@ from Campus_Equipment_Borrowing_and_Inventory_System_APP.models import (
 )
 
 
+# Demo accounts follow the credential rules agreed for the project:
+#   username -> initials of every given name, "." + surname (lower case, no spaces)
+#   email    -> GivenName.Surname@bulsu.edu.ph (spaces removed)
+#   password -> alab_<surname>.123
+# The last field marks the showcase account used by the documentation and the
+# screenshot walkthroughs; it receives one request in every lifecycle state.
+DEMO_ACCOUNTS = (
+    ("Ian Joshua", "Lizano", UserProfile.ADMIN, False),
+    ("Maria Clara", "Santos", UserProfile.ADMIN, False),
+    ("Jhon Emmanuele", "Alcanices", UserProfile.BASIC_USER, True),
+    ("Jerome", "San Pedro", UserProfile.BASIC_USER, False),
+    ("Alexander", "Azotes", UserProfile.BASIC_USER, False),
+    ("Marc Renzo", "Bulaong", UserProfile.BASIC_USER, False),
+    ("Daniel", "Alejandrino", UserProfile.BASIC_USER, False),
+    ("Patricia Mae", "Reyes", UserProfile.BASIC_USER, False),
+    ("Kyle Adrian", "Mendoza", UserProfile.BASIC_USER, False),
+    ("Bea Nicole", "Garcia", UserProfile.BASIC_USER, False),
+)
+
+CONTACT_NUMBER_BASE = 9876543210
+
+
+def demo_username(first_name, last_name):
+    initials = "".join(part[0] for part in first_name.split())
+    return f"{initials}.{last_name.replace(' ', '')}".lower()
+
+
+def demo_email(first_name, last_name):
+    return f"{first_name.replace(' ', '')}.{last_name.replace(' ', '')}@bulsu.edu.ph"
+
+
+def demo_password(last_name):
+    return f"alab_{last_name.replace(' ', '').lower()}.123"
+
+
 class Command(BaseCommand):
-    help = 'Seeds the database with fictional data meeting project requirements.'
+    help = 'Seeds the database with the demo accounts and dataset for the project.'
 
     def handle(self, *args, **kwargs):
         # Deterministic demo data: the same command must produce the same
@@ -51,8 +86,15 @@ class Command(BaseCommand):
             self.stdout.write(f"  Loans: {Loan.objects.count()}")
             self.stdout.write(f"  Maintenance records: {MaintenanceRecord.objects.count()}")
             self.stdout.write(f"  Audit entries: {AuditLog.objects.count()}")
-            self.stdout.write("Admin: admin / admin123")
-            self.stdout.write("Users: user1 to user8 / user123")
+            self.stdout.write("")
+            self.stdout.write("Demo accounts (role / username / password / email / contact):")
+            for account, (_first, last, role, showcase) in zip(self.users, DEMO_ACCOUNTS):
+                marker = " *" if showcase else ""
+                self.stdout.write(
+                    f"  {role:<10} {account.username:<16} "
+                    f"{demo_password(last):<23} {account.email:<38} "
+                    f"{account.profile.contact_number}{marker}"
+                )
 
     def clear_existing_data(self):
         MaintenanceRecord.objects.all().delete()
@@ -83,18 +125,39 @@ class Command(BaseCommand):
             )
 
     def create_users(self):
-        admin_user = User.objects.create_user(username='admin', password='admin123', first_name='System',
-                                              last_name='Admin')
-        admin_profile = admin_user.profile
-        admin_profile.role = UserProfile.ADMIN
-        admin_profile.is_active = True
-        admin_profile.save(update_fields=["role", "is_active"])
+        """Create the documented demo accounts and return the primary admin."""
+        self.users = []
+        self.basic_users = []
+        self.admin = None
+        self.demo_user = None
+        self._user_cursor = 0
 
-        for i in range(1, 9):
-            User.objects.create_user(username=f'user{i}', password='user123', first_name='Basic',
-                                     last_name=f'User {i}')
+        for index, (first, last, role, showcase) in enumerate(DEMO_ACCOUNTS):
+            account = User.objects.create_user(
+                username=demo_username(first, last),
+                email=demo_email(first, last),
+                password=demo_password(last),
+                first_name=first,
+                last_name=last,
+            )
 
-        return admin_user
+            profile = account.profile
+            profile.role = role
+            profile.is_active = True
+            profile.contact_number = f"0{CONTACT_NUMBER_BASE + index}"
+            profile.save(update_fields=["role", "is_active", "contact_number"])
+
+            self.users.append(account)
+
+            if role == UserProfile.ADMIN and self.admin is None:
+                self.admin = account
+            elif role == UserProfile.BASIC_USER:
+                self.basic_users.append(account)
+
+            if showcase:
+                self.demo_user = account
+
+        return self.admin
 
     def create_inventory(self):
         categories_data = [
@@ -134,11 +197,21 @@ class Command(BaseCommand):
 
         return items_map, units_list
 
-    def get_random_user(self):
-        return User.objects.filter(profile__role=UserProfile.BASIC_USER).order_by('?').first()
+    def _next_user(self):
+        """Round-robin owner so every demo account gets a share of the history.
 
-    def _create_base_request(self, items_map, status, days_offset, units_list=None):
-        user = self.get_random_user()
+        A random owner would make the screenshots and the documented walkthrough
+        non-reproducible, and could leave the showcase account with no requests.
+        """
+        if not self.basic_users:
+            raise CommandError("No basic user accounts exist to own seeded requests.")
+
+        user = self.basic_users[self._user_cursor % len(self.basic_users)]
+        self._user_cursor += 1
+        return user
+
+    def _create_base_request(self, items_map, status, days_offset, units_list=None, user=None):
+        user = user or self._next_user()
         req = BorrowRequest.objects.create(
             user=user,
             purpose=f"Academic purpose for {status}",
@@ -176,8 +249,15 @@ class Command(BaseCommand):
             )
 
     def create_cancelled_requests(self, items_map):
-        for _ in range(4):
-            self._create_base_request(items_map, BorrowRequest.CANCELLED, 3)
+        # The showcase account owns the first one so its history demonstrates
+        # the cancellation state as well.
+        for i in range(4):
+            self._create_base_request(
+                items_map,
+                BorrowRequest.CANCELLED,
+                3,
+                user=self.demo_user if i == 0 else None,
+            )
 
     def create_approved_requests(self, items_map, units_list, admin):
         """Requests waiting for release: units are reserved but not issued."""
@@ -271,15 +351,26 @@ class Command(BaseCommand):
 
     def create_fully_returned_loans(self, items_map, units_list, admin):
         # 2 Fully returned loans. One will trigger a maintenance record.
+        # The showcase account owns the first one so the documented walkthrough
+        # can show a request in every lifecycle state.
         for i in range(2):
-            req = self._create_base_request(items_map, BorrowRequest.RETURNED, -1, units_list)
+            req = self._create_base_request(
+                items_map,
+                BorrowRequest.RETURNED,
+                -1,
+                units_list,
+                user=self.demo_user if i == 0 else None,
+            )
             loan = self._allocate_and_issue(req, units_list, admin, 5)
 
-            for r_item in req.items.all():
+            for index, r_item in enumerate(req.items.all()):
                 alloc = r_item.allocations.first()
                 unit = alloc.unit
 
-                if i == 0:  # Damaged return triggers maintenance
+                # Exactly one damaged unit, so the dataset always documents
+                # four maintenance records regardless of how many items the
+                # random request ended up containing.
+                if i == 0 and index == 0:
                     unit.status = EquipmentUnit.MAINTENANCE
                     unit.condition = "Damaged"
                     unit.save()

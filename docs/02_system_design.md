@@ -197,7 +197,10 @@ base.html
 `manage/layout.html` is the single administrative shell. Shared building blocks live
 in `templates/partials/` (flash messages, pagination, empty states, and the icon
 sprite), and the `{% icon %}` template tag renders accessible inline SVG icons from
-that sprite. Both role shells share `base.html`, which loads the local Bootstrap
+that sprite. The tag emits `fill="none"` and `stroke="currentColor"`, so every icon is
+an outlined glyph that inherits its container's text colour — including the teal
+active-navigation state and the white-on-navy brand mark — instead of falling back to
+the SVG default of a solid black fill. Both role shells share `base.html`, which loads the local Bootstrap
 build, the CSS layers in `static/css/` (base, layout, components, pages, responsive,
 print), and a deferred `static/js/app.js`. The script is optional progressive
 enhancement: mobile navigation, confirmation dialogs, toasts, password reveal, status
@@ -220,7 +223,8 @@ filters, and disclosure menus all degrade to working HTML without it.
 - **Privacy:** borrower identities and history are visible only to their owner and
   administrators; maintenance and audit pages are admin-only.
 - **Data minimisation:** registration collects username, name, email, and contact
-  number only. Seed data uses fictional identities.
+  number only. Seed data uses the team's own names (with consent) and invented dummy
+  identities, never third-party student or staff records.
 - **Security:** Django authentication hashes passwords; CSRF middleware protects
   forms; ORM parameterisation prevents SQL injection; template escaping prevents XSS.
 - **Accessibility:** semantic landmarks, tables, and labels; one `h1` per page with an

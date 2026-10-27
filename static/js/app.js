@@ -14,11 +14,14 @@
     var navClose = document.querySelector("[data-nav-close]");
 
     function isNarrow() {
+        // Defines the mobile/tablet breakpoint (1100px and below)
         return window.matchMedia("(max-width: 1100px)").matches;
     }
 
     function openNav() {
-        if (!sidebar) return;
+        // Defensive guard: kung walang sidebar o KUNG HINDI narrow ang screen, walang mangyayari
+        if (!sidebar || !isNarrow()) return;
+
         sidebar.classList.add("is-open");
         body.classList.add("nav-open");
         if (navOverlay) navOverlay.hidden = false;
@@ -73,6 +76,7 @@
     });
 
     window.addEventListener("resize", function () {
+        // Kung lumaki ang screen lagpas 1100px, i-close automatically ang nav
         if (!isNarrow() && body.classList.contains("nav-open")) closeNav(false);
     });
 

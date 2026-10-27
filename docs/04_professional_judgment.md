@@ -12,7 +12,7 @@ trade-off.
 | Administrator | Make fair, attributable decisions | Role checks, recorded remarks, audit log |
 | Custodian | Keep damaged assets out of circulation | Automatic maintenance routing, reconciliation |
 | Instructor / evaluator | Verify individual and team contribution | Git history, requirement-grouped tests, evidence documents |
-| Institution | Comply with privacy and records rules | Data minimisation, no real student records, retention-friendly archiving |
+| Institution | Comply with privacy and records rules | Data minimisation, no third-party student records, retention-friendly archiving |
 
 ## 2. Access control
 
@@ -44,8 +44,8 @@ explicit in tests.
 | SQL injection | All queries go through the ORM; no raw SQL |
 | XSS | Templates auto-escape user content (`purpose`, descriptions, remarks) |
 | Sensitive data in exports | CSV escapes cells beginning with `=`, `+`, `-`, `@` to prevent spreadsheet formula injection |
-| Demo credentials | Fictional accounts only; README warns not to reuse them |
-| Private data in seed | No real student names, emails, or records are seeded |
+| Demo credentials | Demo accounts only; the README warns not to reuse them |
+| Private data in seed | The team's own names, used with consent, plus invented dummy identities; no third-party student or staff records are seeded |
 | Production guidance | README documents key generation and `DEBUG=0`; a separate production settings module is not required |
 
 The brief asks for environment-variable guidance rather than a production deployment.
@@ -107,7 +107,7 @@ admins.
 
 | Law / policy | How the project responds |
 | :--- | :--- |
-| Data Privacy Act of 2012 (RA 10173) | Collects minimal personal data, prevents cross-user disclosure, and uses fictional seed identities |
+| Data Privacy Act of 2012 (RA 10173) | Collects minimal personal data, prevents cross-user disclosure, and seeds only the team's own names (with consent) plus invented dummy identities |
 | Intellectual Property Code (RA 8293) | Uses Django and Bootstrap under their licences; no proprietary code is copied |
 | BulSU AI Policy | AI assistance is disclosed; the team can explain and demonstrate the submitted behaviour |
 | Institution records policy | Archive/retire instead of deleting transactional records |
