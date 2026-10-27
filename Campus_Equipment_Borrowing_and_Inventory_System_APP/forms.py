@@ -26,6 +26,8 @@ class AvailabilitySelect(forms.Select):
         )
         if str(value) in self.unavailable_values:
             option["attrs"]["disabled"] = True
+        if value and getattr(value, "instance", None) is not None:
+            option["attrs"]["data-available"] = value.instance.available_quantity
         return option
 
 

@@ -1,3 +1,4 @@
+
 {% extends "portal/layout.html" %}
 
 {% block page_title %}New Borrowing Request{% endblock %}
@@ -6,29 +7,40 @@
 <div class="page-container">
     <header class="page-header">
         <nav class="breadcrumb-nav" aria-label="Breadcrumb">
-            <a class="breadcrumb-link" href="{% url 'browse_catalog' %}">Browse Equipment</a>
+            <a class="breadcrumb-link" href="{% url 'browse_catalog' %}">
+                Browse Equipment
+            </a>
             <span class="breadcrumb-separator" aria-hidden="true">/</span>
-            <span class="breadcrumb-current" aria-current="page">New Request</span>
+            <span class="breadcrumb-current" aria-current="page">
+                New Request
+            </span>
         </nav>
+
         <h1 class="page-title">New Borrowing Request</h1>
         <p class="page-description">
-            Request one to three different items. Requests are reviewed by an administrator before any unit is reserved.
+            Request one to three different items. Requests are reviewed
+            by an administrator before any unit is reserved.
         </p>
     </header>
 
     <div class="request-layout">
         <section class="content-card" aria-labelledby="request-form-heading">
             <header class="card-header">
-                <h2 class="card-title" id="request-form-heading">Request Details</h2>
+                <h2 class="card-title" id="request-form-heading">
+                    Request Details
+                </h2>
                 <p class="card-description">
-                    Maximum {{ max_quantity }} unit(s) per item. The return date must be between
-                    tomorrow and {{ max_return_date|date:"Y-m-d" }}
+                    Maximum {{ max_quantity }} unit(s) per item.
+                    The return date must be between tomorrow and
+                    {{ max_return_date|date:"Y-m-d" }}
                     ({{ max_loan_duration_days }} days from today).
                 </p>
             </header>
 
             <div class="card-body">
-                <form class="standard-form" method="post" action="{% url 'borrow_request_create' %}">
+                <form class="standard-form"
+                      method="post"
+                      action="{% url 'borrow_request_create' %}">
                     {% csrf_token %}
 
                     {% if form.non_field_errors %}
@@ -38,39 +50,72 @@
                     {% endif %}
 
                     <div class="form-group">
-                        <label class="form-label" for="{{ form.purpose.id_for_label }}">{{ form.purpose.label }}</label>
+                        <label class="form-label"
+                               for="{{ form.purpose.id_for_label }}">
+                            {{ form.purpose.label }}
+                        </label>
                         {{ form.purpose }}
+
                         {% if form.purpose.errors %}
-                            <p class="form-error" role="alert">{{ form.purpose.errors|join:", " }}</p>
+                            <p class="form-error" role="alert">
+                                {{ form.purpose.errors|join:", " }}
+                            </p>
                         {% endif %}
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label" for="{{ form.return_date.id_for_label }}">{{ form.return_date.label }}</label>
+                        <label class="form-label"
+                               for="{{ form.return_date.id_for_label }}">
+                            {{ form.return_date.label }}
+                        </label>
                         {{ form.return_date }}
-                        <p class="form-help">Choose a date after today and within the {{ max_loan_duration_days }}-day limit.</p>
+
+                        <p class="form-help">
+                            Choose a date after today and within the
+                            {{ max_loan_duration_days }}-day limit.
+                        </p>
+
                         {% if form.return_date.errors %}
-                            <p class="form-error" role="alert">{{ form.return_date.errors|join:", " }}</p>
+                            <p class="form-error" role="alert">
+                                {{ form.return_date.errors|join:", " }}
+                            </p>
                         {% endif %}
                     </div>
 
                     <fieldset class="form-fieldset">
-                        <legend class="form-legend">Equipment to borrow</legend>
+                        <legend class="form-legend">
+                            Equipment to borrow
+                        </legend>
 
                         {% for item_field, quantity_field in item_rows %}
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label class="form-label" for="{{ item_field.id_for_label }}">{{ item_field.label }}</label>
+                                    <label class="form-label"
+                                           for="{{ item_field.id_for_label }}">
+                                        {{ item_field.label }}
+                                    </label>
+
                                     {{ item_field }}
+
                                     {% if item_field.errors %}
-                                        <p class="form-error" role="alert">{{ item_field.errors|join:", " }}</p>
+                                        <p class="form-error" role="alert">
+                                            {{ item_field.errors|join:", " }}
+                                        </p>
                                     {% endif %}
                                 </div>
+
                                 <div class="form-group">
-                                    <label class="form-label" for="{{ quantity_field.id_for_label }}">{{ quantity_field.label }}</label>
+                                    <label class="form-label"
+                                           for="{{ quantity_field.id_for_label }}">
+                                        {{ quantity_field.label }}
+                                    </label>
+
                                     {{ quantity_field }}
+
                                     {% if quantity_field.errors %}
-                                        <p class="form-error" role="alert">{{ quantity_field.errors|join:", " }}</p>
+                                        <p class="form-error" role="alert">
+                                            {{ quantity_field.errors|join:", " }}
+                                        </p>
                                     {% endif %}
                                 </div>
                             </div>
@@ -78,8 +123,14 @@
                     </fieldset>
 
                     <div class="form-actions">
-                        <button class="btn btn--primary" type="submit">{% icon 'send' %} Submit Request</button>
-                        <a class="btn btn--link" href="{% url 'request_history' %}">View my requests</a>
+                        <button class="btn btn--primary" type="submit">
+                            {% icon 'send' %} Submit Request
+                        </button>
+
+                        <a class="btn btn--link"
+                           href="{% url 'request_history' %}">
+                            View my requests
+                        </a>
                     </div>
                 </form>
             </div>
@@ -87,34 +138,146 @@
 
         <aside class="content-card" aria-labelledby="request-help-heading">
             <header class="card-header">
-                <h2 class="card-title" id="request-help-heading">How it works</h2>
+                <h2 class="card-title" id="request-help-heading">
+                    How it works
+                </h2>
             </header>
+
             <div class="card-body">
-                <ol class="status-steps" role="list" aria-label="Request lifecycle">
-                    <li class="is-current">{% icon 'check' %} Submitted</li>
+                <ol class="status-steps"
+                    role="list"
+                    aria-label="Request lifecycle">
+                    <li class="is-current">
+                        {% icon 'check' %} Submitted
+                    </li>
                     <li>{% icon 'check' %} Reviewed</li>
                     <li>{% icon 'check' %} Released</li>
                     <li>{% icon 'check' %} Returned</li>
                 </ol>
 
                 <div class="alert alert--info mt-4">
-                    <p>Submitting a request does not reserve units yet. An administrator reviews availability and reserves the equipment.</p>
+                    <p>
+                        Submitting a request does not reserve units yet.
+                        An administrator reviews availability and
+                        reserves the equipment.
+                    </p>
                 </div>
 
                 <dl class="detail-list mt-4">
                     <dt>Items per request</dt>
                     <dd>Up to 3 different items</dd>
+
                     <dt>Units per item</dt>
                     <dd>Up to {{ max_quantity }}</dd>
+
                     <dt>Loan length</dt>
                     <dd>Up to {{ max_loan_duration_days }} days</dd>
                 </dl>
 
                 <p class="text-muted text-sm mt-4 mb-0">
-                    Need a different item? <a href="{% url 'browse_catalog' %}">Browse the catalog</a> to check live availability.
+                    Need a different item?
+                    <a href="{% url 'browse_catalog' %}">
+                        Browse the catalog
+                    </a>
+                    to check live availability.
                 </p>
             </div>
         </aside>
     </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const systemMax = Number("{{ max_quantity|escapejs }}");
+
+    for (let position = 1; position <= 3; position++) {
+
+        const equipment = document.getElementById(
+            "id_item_" + position
+        );
+
+        const quantity = document.getElementById(
+            "id_quantity_" + position
+        );
+
+        if (!equipment || !quantity) {
+            continue;
+        }
+
+        function updateQuantityLimit() {
+
+            const selectedOption =
+                equipment.options[equipment.selectedIndex];
+
+            const available = Number(
+                selectedOption?.dataset.available || 0
+            );
+
+            const maximum = Math.min(systemMax, available);
+
+            // Set quantity maximum based on availability
+            quantity.min = "1";
+            quantity.max = String(maximum);
+
+            // Disable quantity if no equipment is selected
+            quantity.disabled =
+                !equipment.value || maximum < 1;
+
+            if (quantity.disabled) {
+                quantity.value = "";
+            } else {
+
+                // Automatically reduce an excessive quantity
+                if (
+                    quantity.value !== "" &&
+                    Number(quantity.value) > maximum
+                ) {
+                    quantity.value = String(maximum);
+                }
+
+                // Prevent quantities below 1
+                if (
+                    quantity.value !== "" &&
+                    Number(quantity.value) < 1
+                ) {
+                    quantity.value = "1";
+                }
+            }
+
+            quantity.title = maximum > 0
+                ? "Maximum " + maximum + " unit(s) available"
+                : "Select equipment with available units";
+        }
+
+        // Update when equipment selection changes
+        equipment.addEventListener(
+            "change",
+            updateQuantityLimit
+        );
+
+        // Check the quantity while typing
+        quantity.addEventListener("input", function () {
+
+            if (quantity.value === "") {
+                return;
+            }
+
+            const maximum = Number(quantity.max);
+            const current = Number(quantity.value);
+
+            if (current > maximum) {
+                quantity.value = String(maximum);
+            }
+
+            if (current < 1) {
+                quantity.value = "1";
+            }
+        });
+
+        // Initialize limits when the page loads
+        updateQuantityLimit();
+    }
+});
+</script>
 {% endblock %}
