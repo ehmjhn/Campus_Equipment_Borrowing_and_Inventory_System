@@ -4,6 +4,8 @@ from functools import wraps
 
 from django.contrib.auth import get_user_model, login as auth_login
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth import update_session_auth_hash
 from django.core.paginator import Paginator
 from django.db import transaction, IntegrityError
 from django.db.models import Count, Q
@@ -1490,7 +1492,7 @@ def request_approve(request, request_id):
                 )
                 return redirect("request_review")
 
-            max_quantity = SystemSetting.get_int("max_quantity", 3)
+            max_quantity = _max_quantity()
 
             for item in request_items:
                 if item.quantity > max_quantity:
@@ -1689,7 +1691,10 @@ def _max_loan_duration_days():
 
 
 def _max_quantity():
-    return SystemSetting.get_int("max_quantity", 3)
+    setting = SystemSetting.objects.filter(key__iexact="max_quantity").first()
+    if setting is not None and setting.value.isdigit():
+        return max(1, int(setting.value))
+    return 3
 
 
 def _request_search(queryset, search_query):
@@ -2504,23 +2509,37 @@ def close_maintenance_record(request, record_id):
 
 @login_required
 def profile_view(request):
-
     if not request.user.profile.is_active:
         return redirect('logout')
 
-    if request.method == 'POST':
-        form = UserProfileForm(request.POST, instance=request.user.profile, user=request.user)
-        if form.is_valid():
-            request.user.first_name = form.cleaned_data['first_name']
-            request.user.last_name = form.cleaned_data['last_name']
-            request.user.save()
-            form.save()
-            messages.success(request, 'Profile updated successfully.')
-            return redirect('profile_view')
-    else:
-        form = UserProfileForm(instance=request.user.profile, user=request.user)
+    form = UserProfileForm(instance=request.user.profile, user=request.user)
+    password_form = PasswordChangeForm(request.user)
 
-    return render(request, 'portal/profile.html', {'form': form})
+    if request.method == 'POST':
+        # Alamin kung nag-submit ng password change o profile update
+        if 'old_password' in request.POST or 'new_password1' in request.POST:
+            password_form = PasswordChangeForm(request.user, request.POST)
+            if password_form.is_valid():
+                user = password_form.save()
+                update_session_auth_hash(request, user) # Para hindi ma-logout ang user
+                messages.success(request, 'Password updated successfully.')
+                return redirect('profile_view')
+            else:
+                messages.error(request, 'Please correct the password errors below.')
+        else:
+            form = UserProfileForm(request.POST, instance=request.user.profile, user=request.user)
+            if form.is_valid():
+                request.user.first_name = form.cleaned_data['first_name']
+                request.user.last_name = form.cleaned_data['last_name']
+                request.user.save()
+                form.save()
+                messages.success(request, 'Profile updated successfully.')
+                return redirect('profile_view')
+
+    return render(request, 'portal/profile.html', {
+        'form': form,
+        'password_form': password_form,
+    })
 
 @login_required
 def portal_home(request):
@@ -2582,8 +2601,10 @@ def _portal_catalog_items():
 @basic_user_required
 def borrow_request_create(request):
     catalog_items = _portal_catalog_items()
-    max_quantity = SystemSetting.get_int("max_quantity", 3)
+
+    max_quantity = _max_quantity()
     max_duration = _max_loan_duration_days()
+
     form_kwargs = {
         "catalog_items": catalog_items,
         "max_quantity": max_quantity,
@@ -2615,25 +2636,17 @@ def borrow_request_create(request):
                     action="REQUEST_SUBMITTED",
                     details=(
                         f"Submitted request #{borrow_request.pk} for "
-                        f"{', '.join(
-                            f'{quantity}x {item.name}'
-                            for item, quantity in form.cleaned_data['requested_items']
-                        )}. Requested return date: "
-                        f"{borrow_request.return_date.isoformat()}."
+                        f"{', '.join(f'{quantity}x {item.name}' for item, quantity in form.cleaned_data['requested_items'])}. "
+                        f"Requested return date: {borrow_request.return_date.isoformat()}."
                     ),
                 )
 
-            messages.success(
-                request,
-                f"Request #{borrow_request.pk} submitted and is pending review.",
-            )
+            messages.success(request, f"Request #{borrow_request.pk} submitted and is pending review.")
             return redirect("request_history")
     else:
         initial = {}
         initial_item_id = request.GET.get("item", "").strip()
-        if initial_item_id.isdigit() and catalog_items.filter(
-            pk=initial_item_id
-        ).exists():
+        if initial_item_id.isdigit() and catalog_items.filter(pk=initial_item_id).exists():
             initial["item_1"] = initial_item_id
             initial["quantity_1"] = 1
 
@@ -2809,3 +2822,35 @@ def _admin_page_size(request):
     except (ValueError, TypeError):
         size = 10
     return size if size in (10, 20, 50, 100) else 10
+
+def _get_max_quantity():
+    setting = SystemSetting.objects.filter(key="max_quantity").first()
+    if setting is not None:
+        try:
+            return max(1, int(setting.value))
+        except (TypeError, ValueError):
+            return 3
+    return 3
+
+
+@login_required
+@require_POST
+def password_change_view(request):
+    password_form = PasswordChangeForm(request.user, request.POST)
+    if password_form.is_valid():
+        user = password_form.save()
+        update_session_auth_hash(request, user)  # Para hindi ma-logout ang user pagkatapos magpalit
+        messages.success(request, "Your password was successfully updated!")
+
+        AuditLog.objects.create(
+            actor=request.user,
+            action="PASSWORD_CHANGED",
+            details=f"User '{request.user.username}' updated their password.",
+        )
+        return redirect("profile_view")
+    else:
+        # I-handle ang mga validation error ayon sa 4 na rules (min 8 chars, numeric, common, similarity)
+        for field, errors in password_form.errors.items():
+            for error in errors:
+                messages.error(request, error)
+        return redirect("profile_view")

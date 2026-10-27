@@ -61,6 +61,7 @@ urlpatterns = [
     # U1 - Account and profile
     path("portal/", views.portal_home, name="portal_home"),
     path("portal/profile/", views.profile_view, name="profile_view"),
+    path("portal/profile/change-password/", views.password_change_view, name="password_change"),
 
     # U2 - Browse equipment
     path("portal/catalog/", views.browse_catalog, name="browse_catalog"),

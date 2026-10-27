@@ -314,4 +314,33 @@
         next.addEventListener('click', function () { page++; render(); });
         render();
     });
+
+    /* -------------------------------------------------- Change Password Modal Handler */
+    document.addEventListener("click", function (event) {
+        // Pindutin ang button para i-open ang modal
+        var openBtn = event.target.closest("[data-open-modal]");
+        if (openBtn) {
+            var modalId = openBtn.getAttribute("data-open-modal");
+            var modal = document.getElementById(modalId);
+            if (modal && typeof modal.showModal === "function") {
+                modal.showModal();
+            }
+        }
+
+        // Pindutin ang close button o cancel para isara ang modal
+        var closeBtn = event.target.closest("[data-close-modal]");
+        if (closeBtn) {
+            var modal = closeBtn.closest("dialog");
+            if (modal) {
+                modal.close();
+            }
+        }
+    });
+
+    // Isara ang modal kapag pinindot ang labas ng dialog (backdrop click)
+    document.addEventListener("click", function (event) {
+        if (event.target.tagName === "DIALOG") {
+            event.target.close();
+        }
+    });
 })();

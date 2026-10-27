@@ -52,7 +52,9 @@
                 <dd>{{ request.user.profile.contact_number|default:"Not provided" }}</dd>
             </dl>
             <div class="card-footer">
-                <a class="btn btn--outline btn--sm" href="{% url 'password_change' %}">{% icon 'shield' %} Change password</a>
+                <button type="button" class="btn btn--outline btn--sm" data-open-modal="userPasswordModal">
+                    {% icon 'shield' %} Change password
+                </button>
             </div>
         </section>
 
@@ -89,4 +91,62 @@
         </section>
     </div>
 </div>
+
+<dialog id="userPasswordModal" class="confirm-dialog">
+    <form method="post" action="{% url 'profile_view' %}" class="confirm-dialog__panel" style="max-width: 460px; width: 100%;">
+        {% csrf_token %}
+
+        <div class="d-flex-between mb-3">
+            <h2 class="confirm-dialog__title" style="margin: 0;">Change Password</h2>
+            <button type="button" class="btn-close" data-close-modal aria-label="Close modal">&times;</button>
+        </div>
+
+        <p class="confirm-dialog__text mb-3" style="text-align: left; font-size: 0.9rem; color: #555;">
+            <strong>Password requirements:</strong>
+            <ul style="text-align: left; margin: 5px 0 15px 20px; font-size: 0.85rem; color: #666;">
+                <li>Can’t be too similar to your personal information.</li>
+                <li>Must contain at least 8 characters.</li>
+                <li>Can’t be a commonly used password.</li>
+                <li>Can’t be entirely numeric.</li>
+            </ul>
+        </p>
+
+        {% for field in password_form %}
+            <div class="form-group mb-3" style="text-align: left;">
+                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+
+                <!-- Red Alert sa taas ng input field kung may error sa part na ito -->
+                {% if field.errors %}
+                    <div class="alert alert--error mb-2" role="alert" style="padding: 6px 10px; font-size: 0.85rem;">
+                        {{ field.errors|join:", " }}
+                    </div>
+                {% endif %}
+
+                <div class="password-field">
+                    {{ field }}
+                    <button class="password-toggle" type="button" data-password-toggle="{{ field.id_for_label }}" aria-label="Show password" aria-pressed="false">
+                        {% icon 'eye' %}
+                    </button>
+                </div>
+            </div>
+        {% endfor %}
+
+        <div class="confirm-dialog__actions">
+            <button class="btn btn--outline" type="button" data-close-modal>Cancel</button>
+            <button class="btn btn--primary" type="submit">Update Password</button>
+        </div>
+    </form>
+</dialog>
+
+<!-- Script para kusa itong bumukas pabalik kapag nag-error ang password form -->
+{% if password_form.errors %}
+<script>
+    window.addEventListener("DOMContentLoaded", function() {
+        var modal = document.getElementById("userPasswordModal");
+        if (modal && typeof modal.showModal === "function") {
+            modal.showModal();
+        }
+    });
+</script>
+{% endif %}
 {% endblock %}

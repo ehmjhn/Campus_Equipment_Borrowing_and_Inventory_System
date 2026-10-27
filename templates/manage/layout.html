@@ -123,7 +123,16 @@
         </header>
 
         <main class="content" id="main-content">
-            {% include "partials/_messages.html" %}
+            {% if messages %}
+                <div class="messages-container" style="margin-bottom: 1.5rem;">
+                    {% for message in messages %}
+                        <div class="alert alert--{{ message.tags }}" role="alert">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
             {% block admin_content %}{% endblock %}
         </main>
 

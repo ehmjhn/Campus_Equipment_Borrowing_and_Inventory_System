@@ -179,13 +179,6 @@ class UserProfileForm(forms.ModelForm):
 
 
 class RegisterForm(UserCreationForm):
-    """Public self-registration for basic users.
-
-    The role and activation flags are deliberately not form fields, so a
-    posted ``role`` or ``is_active`` value is ignored. New accounts are always
-    created as active basic users.
-    """
-
     first_name = forms.CharField(max_length=30, required=True)
     last_name = forms.CharField(max_length=30, required=True)
     email = forms.EmailField(required=False)
@@ -221,6 +214,12 @@ class RegisterForm(UserCreationForm):
                 attrs["placeholder"] = placeholders[name]
             if name in autocomplete:
                 attrs["autocomplete"] = autocomplete[name]
+
+            if name in ["password1", "password2"]:
+                attrs["oncopy"] = "return false;"
+                attrs["oncut"] = "return false;"
+                attrs["onpaste"] = "return false;"
+
             field.widget.attrs.update(attrs)
 
     def save(self, commit=True):
@@ -232,8 +231,6 @@ class RegisterForm(UserCreationForm):
         user.is_superuser = False
 
         if commit:
-            # Saving the user triggers the post_save signal that creates the
-            # profile; it is then completed with the registration details.
             user.save()
             profile = user.profile
             profile.role = UserProfile.BASIC_USER
